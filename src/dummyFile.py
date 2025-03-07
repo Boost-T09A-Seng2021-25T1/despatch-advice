@@ -1,2 +1,2 @@
 def testingPipeline():
-    return false
+    return False

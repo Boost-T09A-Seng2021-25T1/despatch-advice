@@ -1,10 +1,12 @@
 import unittest
-from src/dummyFile.py import testingPipeline
+from src.dummyFile.py import testingPipeline
 
-class testing(unittest.TestCase):
 
-    def testDummyTestingFile():
+class Testing(unittest.TestCase):
+
+    def testDummyTestingFile(self):
         self.assertEqual(testingPipeline, False)
+
 
 if __name__ == '__main__':
     unittest.main()
