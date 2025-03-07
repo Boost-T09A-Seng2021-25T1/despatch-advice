@@ -1,5 +1,5 @@
 import unittest
-from src.dummyFile.py import testingPipeline
+import dummyFile.py
 
 
 class Testing(unittest.TestCase):

@@ -1,6 +1,9 @@
-name: concurrent ci/cd linting
+name: linting
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - "*"
 
 jobs:
   lint:

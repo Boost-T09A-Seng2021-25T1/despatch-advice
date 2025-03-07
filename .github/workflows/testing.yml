@@ -1,6 +1,9 @@
-name: testing and coverage pipeline
+name: testing and coverage
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - "*"
 
 jobs:
   lint:
