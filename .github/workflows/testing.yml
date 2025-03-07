@@ -1,9 +1,9 @@
 name: testing and coverage
 
 on:
-  push:
+  pull_request:
     branches:
-      - "*"
+      - main
 
 jobs:
   lint:
