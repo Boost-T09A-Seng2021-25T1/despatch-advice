@@ -1,4 +1,4 @@
-name: concurrent ci/cd for testing
+name: testing and coverage pipeline
 
 on: [push, pull_request]
 
@@ -20,8 +20,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: running testing with unittest
+      - name: running all test files then coverage
         # -s flag is the path to the repo
         # -p flag is to run specific files
         # -m is to run a specific module, in this case, unittests
-        run: python -m unittest discover -s tests -p "*.py"
+        run: |
+          coverage run -m unittest discover -s tests -p "*.py"
+          coverage report
+          coverage html
