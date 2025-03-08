@@ -5,6 +5,14 @@ import uuid
 
 app = FastAPI()
 
+# To check it within local web browser, type "uvicorn swagger:app --reload",
+# then copy the link and add "/docs" at the end of it.
+
+# Add the root route here
+@app.get("/")
+def read_root():
+    return {"message": "To get swagger file, add '/docs' at the end of the url"}
+
 # Data Models
 class DeliveryAddress(BaseModel):
     street_name: str = ""
