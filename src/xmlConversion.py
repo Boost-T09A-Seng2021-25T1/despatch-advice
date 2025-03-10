@@ -13,3 +13,12 @@ def xmlConvert():
     root = etree.Element(f"{despatchSchema}")
 
     # etree.SubElement()
+    print(etree.tostring(root, pretty_print=True).decode())
+
+
+# def main():
+#     xmlConvert()
+
+
+# if __name__ == '__main__':
+#     main()
