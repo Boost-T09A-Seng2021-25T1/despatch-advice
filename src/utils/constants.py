@@ -6,6 +6,9 @@
 # some namespaces are constant for simplicity for now,
 #  might need to add customization here later
 
-cacSchema = 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2'
-cbcSchema = 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
-despatchSchema = 'urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2'
+# Beginning of all namespaces
+schemaStart = 'urn:oasis:names:specification:ubl:schema:xsd:'
+
+cacSchema = schemaStart+'CommonAggregateComponents-2'
+cbcSchema = schemaStart+'CommonBasicComponents-2'
+despatchSchema = schemaStart+'DespatchAdvice-2'
