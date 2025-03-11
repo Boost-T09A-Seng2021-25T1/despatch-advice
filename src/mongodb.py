@@ -11,7 +11,9 @@ load_dotenv(
     )
 )
 
-uri = os.getenv("MDB_URI")
+uri = next(filter(None, [os.getenv("MDB_URI") or os.getenv(
+            "MONGO_URI", "mongodb://localhost:27017/testdb")]))
+
 client = MongoClient(uri, server_api=ServerApi('1'))
 
 # name of the mongodb database

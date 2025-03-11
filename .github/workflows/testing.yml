@@ -11,15 +11,11 @@ jobs:
 
     services:
       mongodb:
-        image: mongo:8.0
-        env:
-          MONGO_INITDB_ROOT_USERNAME: admin
-          MONGO_INITDB_ROOT_PASSWORD: admin
-          MONGO_INITDB_DATABASE: APP-DATABASE
+        image: mongo:6
         ports:
           - 27017:27017
         options: >-
-          --health-cmd mongo
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -38,17 +34,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+        name: mongodb debugging
+        run: echo "MONGO_URI is $MONGO_URI"
+        env:
+          MONGO_URI: mongodb://localhost:27017/testdb
+
       - name: running all test files then coverage
-        # -s flag is the path to the repo
-        # -p flag is to run specific files
-        # -m is to run a specific module, in this case, unittests
+        # -s is repo path, -p is file running, -m is unittests module
         run: |
           coverage run -m unittest discover -s tests -p "*.py"
           coverage report
           coverage html
 
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage-html/
+      # - name: Upload coverage reports
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-report
+      #     path: coverage-html/
