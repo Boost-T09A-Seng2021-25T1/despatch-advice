@@ -12,3 +12,7 @@ schemaStart = 'urn:oasis:names:specification:ubl:schema:xsd:'
 cacSchema = schemaStart+'CommonAggregateComponents-2'
 cbcSchema = schemaStart+'CommonBasicComponents-2'
 despatchSchema = schemaStart+'DespatchAdvice-2'
+
+# Status Codes
+STATUS_SUCCESS = 200
+STATUS_BAD_REQ = 400
