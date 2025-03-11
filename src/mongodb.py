@@ -1,16 +1,14 @@
 from pymongo.mongo_client import MongoClient
+from dotenv import load_dotenv
 import os
 
-uri3 = "&w=majority&appName=BoostT09ACluster"
-uri2 = ".r4oz2.mongodb.net/?retryWrites=true"
-uri = "mongodb+srv://ched:Archimedes24;@boostt09acluster" + uri2 + uri3
+load_dotenv()
+uri = os.getenv("MDB_URI")
+client = MongoClient(uri)
 
-# Create a new client and connect to the server
-MDBURI = os.getenv("MDBURI", uri)
-client = MongoClient(MDBURI)
-
+# Connection test
 try:
-    client.admin.command('Connecting to mongodb...')
+    client.admin.command('ping')
     print("Successfully connected to MongoDB!")
 
     db = client["database"]
