@@ -19,7 +19,7 @@ class TestingMongo(unittest.TestCase):
         self.assertIsInstance(addOrder(newDummyOrderDoc), object)
 
         fetchedOrder = getOrderInfo(testUUID)
-        self.assertEqual(fetchedOrder.ID, newDummyOrderDoc["ID"])
+        self.assertEqual(fetchedOrder["ID"], newDummyOrderDoc["ID"])
 
         self.assertEqual(deleteOrder(testUUID), True)
 
