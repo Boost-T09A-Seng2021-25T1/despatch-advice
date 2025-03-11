@@ -13,10 +13,7 @@ jobs:
       mongodb:
         image: mongo:latest
         ports:
-          - 27017:27017
-        options: >
-          --health-cmd='curl --silent --fail localhost:27017 || exit 1'
-          --health-interval=30s --health-timeout=10s --health-retries=10
+          - 9019:9019
 
     steps:
       - name: copying the repo for the runner ...
