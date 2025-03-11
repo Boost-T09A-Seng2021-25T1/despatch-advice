@@ -14,7 +14,9 @@ jobs:
         image: mongo:latest
         ports:
           - 27017:27017
-        options: --health-cmd='curl --silent --fail localhost:27017 || exit 1' --health-interval=10s --health-timeout=5s --health-retries=5
+        options: >
+          --health-cmd='curl --silent --fail localhost:27017 || exit 1'
+          --health-interval=30s --health-timeout=10s --health-retries=10
 
     steps:
       - name: copying the repo for the runner ...
@@ -38,3 +40,9 @@ jobs:
           coverage run -m unittest discover -s tests -p "*.py"
           coverage report
           coverage html
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage-html/
