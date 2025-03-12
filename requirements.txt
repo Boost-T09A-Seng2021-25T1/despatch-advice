@@ -1,3 +1,5 @@
 flake8
 coverage
 lxml==5.3.1
+pymongo
+python-dotenv
