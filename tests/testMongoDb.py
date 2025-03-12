@@ -2,9 +2,9 @@ from src.mongodb import addOrder, getOrderInfo, deleteOrder
 import unittest
 
 
-class TestingMongo(unittest.TestCase):
+class TestingMongo(unittest.IsolatedAsyncioTestCase):
 
-    def testOrderAdded(self):
+    async def testOrderAdded(self):
         testUUID = "RANDOM-123F-321F-8888-RANDOM1234"
 
         newDummyOrderDoc = {
@@ -16,12 +16,14 @@ class TestingMongo(unittest.TestCase):
             "DespatchAdviceTypeCode": "delivery",
             "Note": "sample"
         }
-        self.assertIsInstance(addOrder(newDummyOrderDoc), object)
+        addOrderRes = await addOrder(newDummyOrderDoc)
+        self.assertIsInstance(addOrderRes, object)
 
-        fetchedOrder = getOrderInfo(testUUID)
+        fetchedOrder = await getOrderInfo(testUUID)
         self.assertEqual(fetchedOrder["ID"], newDummyOrderDoc["ID"])
 
-        self.assertEqual(deleteOrder(testUUID), True)
+        deleteResponse = await deleteOrder(testUUID)
+        self.assertEqual(deleteResponse, True)
 
 
 if __name__ == '__main__':
