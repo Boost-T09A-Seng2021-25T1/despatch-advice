@@ -1,3 +1,0 @@
-
-def despatchSupplier():
-    return True

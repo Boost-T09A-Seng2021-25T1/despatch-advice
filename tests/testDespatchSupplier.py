@@ -1,5 +1,6 @@
 import unittest
-from src.despatchSupplier import despatchSupplier
+from src.mongodb import getOrderInfo
+from src.despatch.despatchSupplier import despatchSupplier
 
 # Testing the despatch supplier section
 class testDespatchSupplier(unittest.Testcase):
