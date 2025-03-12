@@ -1,9 +1,8 @@
-# from pymongo.mongo_client import MongoClient
 import motor.motor_asyncio
 import asyncio
 from dotenv import load_dotenv
-# from pymongo.server_api import ServerApi
 import os
+import pymongo.errors
 
 
 load_dotenv(
@@ -19,9 +18,9 @@ uri = next(filter(None, [os.getenv("MDB_URI") or os.getenv(
 client = motor.motor_asyncio.AsyncIOMotorClient(uri)
 
 # name of the mongodb database
-db = client["ubl_docs"]
+mongoDb = client["ubl_docs"]
 # name of the collection inside the mongodb
-orders = db["orders"]
+orders = mongoDb["orders"]
 
 
 # Connection test on startup
@@ -49,8 +48,8 @@ async def addOrder(data):
         response = await orders.insert_one(data)
         return response.inserted_id
 
-    except Exception as error:
-        print(f"MongoDB request failed: {error}")
+    except pymongo.errors.DuplicateKeyError as error:
+        raise error
 
 
 # ===========================================
@@ -67,7 +66,7 @@ async def getOrderInfo(orderUUID):
         return res
 
     except Exception as error:
-        print(f"MongoDB fetch failed: {error}")
+        raise error
 
 
 # ===========================================
@@ -80,12 +79,24 @@ async def getOrderInfo(orderUUID):
 
 async def deleteOrder(orderUUID):
     try:
-        await orders.delete_one({"UUID": orderUUID})
+        await orders.delete_many({"UUID": orderUUID})
         return True
 
     except Exception as error:
-        print(f"MongoDB delete failed: {error}")
-        return False
+        raise error
+
+
+# ===========================================
+# Purpose: function for testing only/ Clears db
+# Argument: nil
+
+# Return: nil
+# ============================================
+
+
+async def clearDb():
+    for eachCollection in await mongoDb.list_collection_names():
+        await mongoDb[eachCollection].delete_many({})
 
 
 if __name__ == "__main__":
