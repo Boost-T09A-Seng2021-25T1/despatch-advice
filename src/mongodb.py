@@ -73,6 +73,8 @@ async def addOrder(data, orders):
 
 async def getOrderInfo(orderUUID, orders):
     res = await orders.find_one({"UUID": orderUUID})
+    if not res:
+        raise ValueError(f"{orderUUID} not found.")
     return res
 
 
@@ -86,10 +88,7 @@ async def getOrderInfo(orderUUID, orders):
 
 async def deleteOrder(orderUUID, orders):
     response = await orders.delete_many({"UUID": orderUUID})
-
-    if response.deleted_count == 0:
-        return False
-    return True
+    return response.deleted_count > 0
 
 
 # ===========================================
