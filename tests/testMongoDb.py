@@ -7,6 +7,7 @@ import motor.motor_asyncio
 class TestOrder(unittest.IsolatedAsyncioTestCase):
 
     # ============================================
+    # ============================================
     # These two funcs run before and after every test
     async def asyncSetUp(self):
         # isolated connection to db for every test
@@ -14,7 +15,7 @@ class TestOrder(unittest.IsolatedAsyncioTestCase):
         self.orders = self.db["orders"]
 
         self.testUUID = "RANDOM-123F-321F-8888-RANDOM1234"
-        self.fakeOrder = fakeOrder = {
+        self.fakeOrder = {
             "ID": "999999",
             "CopyIndicator": "false",
             "UUID": self.testUUID.strip(),
@@ -24,11 +25,10 @@ class TestOrder(unittest.IsolatedAsyncioTestCase):
             "Note": "sample"
         }
 
-        await addOrder(fakeOrder, self.orders)
-
     async def asyncTearDown(self):
-        clearDb(self.db)
+        await clearDb(self.db)
         self.client.close()
+    # ============================================
     # ============================================
 
     async def testOrderAdded(self):
@@ -41,9 +41,11 @@ class TestOrder(unittest.IsolatedAsyncioTestCase):
 
         with self.assertRaises(pymongo.errors.DuplicateKeyError):
             await addOrder(test, self.orders)
+
         await deleteOrder("1234", self.orders)
 
     async def testFetchAndDelete(self):
+        await addOrder(self.fakeOrder, self.orders)
         # tests for correct fetching
         fetchedOrder = await getOrderInfo(self.testUUID, self.orders)
         self.assertEqual(
@@ -51,10 +53,10 @@ class TestOrder(unittest.IsolatedAsyncioTestCase):
             self.fakeOrder["ID"]
         )
 
-        self.assertTrue(await deleteOrder(self.testUUID, self.orders))
-
         with self.assertRaises(ValueError):
-            await deleteOrder("FAKKEEE", self.orders)
+            await getOrderInfo("NON-EXISTENT", self.orders)
+
+        self.assertTrue(await deleteOrder(self.testUUID, self.orders))
 
     async def testDbConnect(self):
         client, db = await dbConnect()

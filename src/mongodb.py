@@ -93,15 +93,14 @@ async def deleteOrder(orderUUID, orders):
 
 # ===========================================
 # Purpose: function for testing only/ Clears db
-# Argument: nil
+# Argument: the database itself, not the collection
 
 # Return: nil
 # ============================================
 
 
 async def clearDb(mongoDb):
-    for eachCollection in await mongoDb.list_collection_names():
-        await mongoDb[eachCollection].delete_many({})
+    await mongoDb.orders.delete_many({})
 
 
 if __name__ == "__main__":
