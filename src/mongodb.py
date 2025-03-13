@@ -1,7 +1,8 @@
-from pymongo.mongo_client import MongoClient
+import motor.motor_asyncio
+import asyncio
 from dotenv import load_dotenv
-from pymongo.server_api import ServerApi
 import os
+import pymongo.errors
 
 
 load_dotenv(
@@ -11,23 +12,36 @@ load_dotenv(
     )
 )
 
+
 uri = next(filter(None, [os.getenv("MDB_URI") or os.getenv(
             "MONGO_URI", "mongodb://localhost:27017/testdb")]))
 
-client = MongoClient(uri, server_api=ServerApi('1'))
-
-# name of the mongodb database
-db = client["ubl_docs"]
-# name of the collection inside the mongodb
-orders = db["orders"]
 
 # Connection test on startup
-try:
-    client.admin.command('ping')
-    print("Successfully connected to MongoDB!")
+async def connectToMongo(db):
+    try:
+        await db.admin.command('ping')
+        print("Successfully connected to MongoDB!")
 
-except Exception as error:
-    print(f"Connection failed: {error}")
+    except Exception as error:
+        print(f"Connection failed: {error}")
+
+
+# ===========================================
+# Purpose: Database function to import.
+# Creates a new instance of a db connection
+
+# Argument: nil
+
+# Return: db (dictionary) containing all data
+# ============================================
+async def dbConnect():
+    client = motor.motor_asyncio.AsyncIOMotorClient(uri)
+
+    # name of the collection inside the mongodb
+    db = client["ubl_docs"]
+
+    return client, db
 
 
 # ===========================================
@@ -40,12 +54,13 @@ except Exception as error:
 # ============================================
 
 
-def addOrder(data):
+async def addOrder(data, orders):
     try:
-        return orders.insert_one(data).inserted_id
+        response = await orders.insert_one(data)
+        return response.inserted_id
 
-    except Exception as error:
-        print(f"MongoDB request failed: {error}")
+    except pymongo.errors.DuplicateKeyError as error:
+        raise error
 
 
 # ===========================================
@@ -56,12 +71,11 @@ def addOrder(data):
 # ============================================
 
 
-def getOrderInfo(orderUUID):
-    try:
-        return orders.find_one({"UUID": orderUUID})
-
-    except Exception as error:
-        print(f"MongoDB fetch failed: {error}")
+async def getOrderInfo(orderUUID, orders):
+    res = await orders.find_one({"UUID": orderUUID})
+    if not res:
+        raise ValueError(f"{orderUUID} not found.")
+    return res
 
 
 # ===========================================
@@ -72,10 +86,23 @@ def getOrderInfo(orderUUID):
 # ============================================
 
 
-def deleteOrder(orderUUID):
-    try:
-        orders.delete_one({"UUID": orderUUID})
-        return True
+async def deleteOrder(orderUUID, orders):
+    response = await orders.delete_many({"UUID": orderUUID})
+    return response.deleted_count > 0
 
-    except Exception as error:
-        print(f"MongoDB delete failed: {error}")
+
+# ===========================================
+# Purpose: function for testing only/ Clears db
+# Argument: the database itself, not the collection
+
+# Return: nil
+# ============================================
+
+
+async def clearDb(mongoDb):
+    await mongoDb.orders.delete_many({})
+
+
+if __name__ == "__main__":
+    orders, db = dbConnect()
+    asyncio.run(connectToMongo())
