@@ -1,2 +1,4 @@
 .env
 /config/
+tests/__pycache__
+src/__pycache__
