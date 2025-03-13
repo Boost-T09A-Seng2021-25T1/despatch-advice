@@ -42,6 +42,7 @@ class TestOrder(unittest.IsolatedAsyncioTestCase):
         await deleteOrder("1234", self.orders)
 
     async def testFetchAndDelete(self):
+        await addOrder(fakeOrder, self.orders)
         # tests for correct fetching
         fetchedOrder = await getOrderInfo(testUUID, self.orders)
         self.assertEqual(
