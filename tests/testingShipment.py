@@ -1,6 +1,6 @@
 import unittest
 import json
-from src.mongodb import createShipment
+from src.despatch.shipment import create_shipment
 
 class TestCreateShipment(unittest.TestCase):
     
@@ -33,44 +33,44 @@ class TestCreateShipment(unittest.TestCase):
         
     # --- SUCCESS CASES ---
     def test_create_valid_shipment(self):
-        response = createShipment(self.valid_shipment_id, self.valid_payload)
+        response = create_shipment(self.valid_shipment_id, self.valid_payload)
         self.assertEqual(response, None)  # Assuming successful execution returns None
 
     def test_create_shipment_with_minimum_fields(self):
         minimal_payload = {"ID": "SHIP-654321", "Consignment": {"ID": "CON-456789"}, "Delivery": {}}
-        response = createShipment("SHIP-654321", minimal_payload)
+        response = create_shipment("SHIP-654321", minimal_payload)
         self.assertEqual(response, None)
         
     def test_create_shipment_with_extra_fields(self):
         extra_payload = self.valid_payload.copy()
         extra_payload["ExtraField"] = "Extra Value"
-        response = createShipment(self.valid_shipment_id, extra_payload)
+        response = create_shipment(self.valid_shipment_id, extra_payload)
         self.assertEqual(response, None)
         
     def test_create_shipment_with_different_id_format(self):
-        response = createShipment("123-NEW-SHIPMENT", self.valid_payload)
+        response = create_shipment("123-NEW-SHIPMENT", self.valid_payload)
         self.assertEqual(response, None)
         
     # --- FAILURE CASES ---
     def test_create_shipment_missing_fields(self):
         invalid_payload = {}  # Completely missing required fields
         with self.assertRaises(ValueError):
-            createShipment(self.valid_shipment_id, invalid_payload)
+            create_shipment(self.valid_shipment_id, invalid_payload)
         
     def test_create_shipment_invalid_field_types(self):
         invalid_payload = self.valid_payload.copy()
         invalid_payload["ID"] = 123456  # Should be a string
         with self.assertRaises(TypeError):
-            createShipment(self.valid_shipment_id, invalid_payload)
+            create_shipment(self.valid_shipment_id, invalid_payload)
 
     def test_create_shipment_invalid_shipment_id(self):
         with self.assertRaises(ValueError):
-            createShipment(self.invalid_shipment_id, self.valid_payload)
+            create_shipment(self.invalid_shipment_id, self.valid_payload)
         
     def test_create_shipment_nonexistent_shipment_id(self):
         nonexistent_shipment_id = "SHIP-NOTFOUND"
         with self.assertRaises(FileNotFoundError):
-            createShipment(nonexistent_shipment_id, self.valid_payload)
+            create_shipment(nonexistent_shipment_id, self.valid_payload)
         
 if __name__ == "__main__":
     unittest.main()

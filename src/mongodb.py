@@ -20,7 +20,6 @@ client = MongoClient(uri, server_api=ServerApi('1'))
 db = client["ubl_docs"]
 # name of the collection inside the mongodb
 orders = db["orders"]
-shipments = db["shipments"]
 
 # Connection test on startup
 try:
@@ -80,33 +79,3 @@ def deleteOrder(orderUUID):
 
     except Exception as error:
         print(f"MongoDB delete failed: {error}")
-
-# ===========================================
-# Purpose: Database function to create a shipment entry.
-# Argument: shipmentId (string), data (dictionary)
-# Return: inserted shipment ID
-# ============================================
-
-
-def createShipment(shipmentId, data):
-    try:
-        # Validate required fields
-        required_fields = ["ID", "Consignment", "Delivery"]
-        if not all(field in data for field in required_fields):
-            raise ValueError("Missing required fields: ID, Consignment, or Delivery")
-
-        # Ensure ID and Consignment ID are strings
-        if not isinstance(data["ID"], str) or not isinstance(data["Consignment"]["ID"], str):
-            raise TypeError("ID and Consignment ID must be strings")
-
-        # Check if shipment already exists
-        if shipments.find_one({"ID": shipmentId}):
-            raise ValueError("ShipmentId already exists")
-
-        # Insert shipment into MongoDB
-        result = shipments.insert_one(data)
-        return result.inserted_id
-
-    except Exception as error:
-        print(f"MongoDB request failed: {error}")
-        return None
