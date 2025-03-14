@@ -26,6 +26,7 @@ async def despatchSupplier(UUID):
         mongoClient.close()
         raise ValueError(error)
 
+    # assumes that seller = despatch. Logic to be added
     # Recursive O(n) copy
     DespatchSupplierParty = copy.deepcopy(data["SellerSupplierParty"])
 
