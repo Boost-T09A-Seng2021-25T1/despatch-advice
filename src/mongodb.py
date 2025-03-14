@@ -1,4 +1,6 @@
 import motor.motor_asyncio
+from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorCollection
 import asyncio
 from dotenv import load_dotenv
 import os
@@ -54,7 +56,7 @@ async def dbConnect():
 # ============================================
 
 
-async def addOrder(data, orders):
+async def addOrder(data: dict, orders: AsyncIOMotorCollection):
     try:
         response = await orders.insert_one(data)
         return response.inserted_id
@@ -71,7 +73,7 @@ async def addOrder(data, orders):
 # ============================================
 
 
-async def getOrderInfo(orderUUID, orders):
+async def getOrderInfo(orderUUID: str, orders: AsyncIOMotorCollection):
     res = await orders.find_one({"UUID": orderUUID})
     if not res:
         raise ValueError(f"{orderUUID} not found.")
@@ -86,7 +88,7 @@ async def getOrderInfo(orderUUID, orders):
 # ============================================
 
 
-async def deleteOrder(orderUUID, orders):
+async def deleteOrder(orderUUID, orders: AsyncIOMotorCollection):
     response = await orders.delete_many({"UUID": orderUUID})
     return response.deleted_count > 0
 
@@ -99,7 +101,7 @@ async def deleteOrder(orderUUID, orders):
 # ============================================
 
 
-async def clearDb(mongoDb):
+async def clearDb(mongoDb: AsyncIOMotorClient):
     await mongoDb.orders.delete_many({})
 
 

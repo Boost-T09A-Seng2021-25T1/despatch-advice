@@ -16,7 +16,7 @@ dirPath = os.path.abspath(os.path.abspath(os.path.join(
 # ==================================
 
 
-async def despatchSupplier(UUID):
+async def despatchSupplier(UUID: str):
     mongoClient, db = await dbConnect()
     orders = db["orders"]
 

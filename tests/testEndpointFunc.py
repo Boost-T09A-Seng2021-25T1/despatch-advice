@@ -32,9 +32,9 @@ class testDespatchSupplier(unittest.TestCase):
             ("", {}, {}, 123)
         ]
 
-        for funcCalls in invalidArgs:
+        for arguments in invalidArgs:
             with self.assertRaises(TypeError):
-                endpointFunc(*funcCalls)
+                endpointFunc(*arguments)
 
 
 if __name__ == '__main__':
