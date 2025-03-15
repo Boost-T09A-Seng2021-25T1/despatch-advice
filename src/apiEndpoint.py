@@ -1,6 +1,6 @@
-import os
-from src.mongodb import getOrderInfo, dbConnect
-import copy
+# import os
+# from src.mongodb import getOrderInfo, dbConnect
+# import copy
 
 def endpointFunc(
     xmlDoc: str,
@@ -17,6 +17,8 @@ def endpointFunc(
         raise TypeError(
             "Error: invalid shipment or despatch information"
         )
+
+
 
     # call Arnav's func here for xml to json
 
