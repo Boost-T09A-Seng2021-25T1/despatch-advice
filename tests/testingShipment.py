@@ -1,11 +1,12 @@
 import unittest
 import json
 import asyncio
+import copy
 from src.despatch.shipment import create_shipment
 
-class TestCreateShipment(unittest.TestCase):
+class TestCreateShipment(unittest.IsolatedAsyncioTestCase): 
     
-    def setUp(self):
+    async def asyncSetUp(self):
         self.valid_shipment_id = "SHIP-123456"
         self.invalid_shipment_id = "SHIP-INVALID"
         
@@ -31,35 +32,35 @@ class TestCreateShipment(unittest.TestCase):
                 }
             }
         }
-        
+
     # --- SUCCESS CASES ---
     async def test_create_valid_shipment(self):
         response = await create_shipment(self.valid_shipment_id, self.valid_payload)
-        self.assertEqual(response, None)  # Assuming successful execution returns None
+        self.assertIsNone(response)  
 
     async def test_create_shipment_with_minimum_fields(self):
         minimal_payload = {"ID": "SHIP-654321", "Consignment": {"ID": "CON-456789"}, "Delivery": {}}
         response = await create_shipment("SHIP-654321", minimal_payload)
-        self.assertEqual(response, None)
-        
+        self.assertIsNone(response)
+
     async def test_create_shipment_with_extra_fields(self):
-        extra_payload = self.valid_payload.copy()
+        extra_payload = copy.deepcopy(self.valid_payload)  
         extra_payload["ExtraField"] = "Extra Value"
         response = await create_shipment(self.valid_shipment_id, extra_payload)
-        self.assertEqual(response, None)
-        
+        self.assertIsNone(response)
+
     async def test_create_shipment_with_different_id_format(self):
         response = await create_shipment("123-NEW-SHIPMENT", self.valid_payload)
-        self.assertEqual(response, None)
-        
+        self.assertIsNone(response)
+
     # --- FAILURE CASES ---
     async def test_create_shipment_missing_fields(self):
         invalid_payload = {}  # Completely missing required fields
         with self.assertRaises(ValueError):
             await create_shipment(self.valid_shipment_id, invalid_payload)
-        
+
     async def test_create_shipment_invalid_field_types(self):
-        invalid_payload = self.valid_payload.copy()
+        invalid_payload = copy.deepcopy(self.valid_payload)
         invalid_payload["ID"] = 123456  # Should be a string
         with self.assertRaises(TypeError):
             await create_shipment(self.valid_shipment_id, invalid_payload)
@@ -67,11 +68,11 @@ class TestCreateShipment(unittest.TestCase):
     async def test_create_shipment_invalid_shipment_id(self):
         with self.assertRaises(ValueError):
             await create_shipment(self.invalid_shipment_id, self.valid_payload)
-        
+
     async def test_create_shipment_nonexistent_shipment_id(self):
         nonexistent_shipment_id = "SHIP-NOTFOUND"
         with self.assertRaises(FileNotFoundError):
             await create_shipment(nonexistent_shipment_id, self.valid_payload)
-        
+
 if __name__ == "__main__":
     unittest.main()
