@@ -1,78 +1,128 @@
+from src.mongodb import dbConnect, clearDb
+from src.despatch.shipment import create_shipment, setup_indexes
 import unittest
 import json
-import asyncio
-import copy
-from src.despatch.shipment import create_shipment
+import os
 
-class TestCreateShipment(unittest.IsolatedAsyncioTestCase): 
-    
+# Construct the full path to the JSON file in the 'public' folder
+dirPath = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..")
+)
+filePath = os.path.join(dirPath, "public", "exampleShipmentDoc.json")
+
+
+class TestShipmentCreation(unittest.IsolatedAsyncioTestCase):
+    # ============================================
+    # These two funcs run before and after every test
     async def asyncSetUp(self):
+        """Set up the MongoDB connection and load test data."""
+        # Check if the JSON file exists
+        if not os.path.exists(filePath):
+            self.fail(f"JSON file not found at: {filePath}")
+
+        self.client, self.db = await dbConnect()
+        self.shipments = self.db["shipments"]
+        await clearDb(self.db)  # Clear the database before each test
+        await setup_indexes()  # Ensure indexes are set up
+
+        # Load test data from JSON file
+        with open(filePath, "r") as file:
+            self.valid_payload = json.load(file)
+
+        # Define test data
         self.valid_shipment_id = "SHIP-123456"
         self.invalid_shipment_id = "SHIP-INVALID"
-        
-        self.valid_payload = {
-            "ID": "SHIP-123456",
-            "Consignment": {"ID": "CON-789012"},
-            "Delivery": {
-                "DeliveryAddress": {
-                    "StreetName": "Main Street",
-                    "BuildingName": "Building A",
-                    "BuildingNumber": "10",
-                    "CityName": "Sample City",
-                    "PostalZone": "12345",
-                    "CountrySubentity": "Region X",
-                    "AddressLine": "Address details",
-                    "Country": {"IdentificationCode": "US"}
-                },
-                "RequestedDeliveryPeriod": {
-                    "StartDate": "2025-06-01",
-                    "StartTime": "08:00",
-                    "EndDate": "2025-06-05",
-                    "EndTime": "18:00"
-                }
-            }
-        }
 
-    # --- SUCCESS CASES ---
-    async def test_create_valid_shipment(self):
-        response = await create_shipment(self.valid_shipment_id, self.valid_payload)
-        self.assertIsNone(response)  
+    async def asyncTearDown(self):
+        """Clean up after each test."""
+        if self.client:
+            await self.shipments.delete_many({})
+            self.client.close()
+    # ============================================
+    # ============================================
 
-    async def test_create_shipment_with_minimum_fields(self):
-        minimal_payload = {"ID": "SHIP-654321", "Consignment": {"ID": "CON-456789"}, "Delivery": {}}
-        response = await create_shipment("SHIP-654321", minimal_payload)
-        self.assertIsNone(response)
+    async def test_create_shipment_success(self):
+        """Test successful creation of a shipment."""
+        result = await create_shipment(
+            self.valid_shipment_id, self.valid_payload
+        )
+        self.assertTrue(
+            result["success"], f"Expected success but got: {result}"
+        )
+        self.assertIn("inserted_id", result)
 
-    async def test_create_shipment_with_extra_fields(self):
-        extra_payload = copy.deepcopy(self.valid_payload)  
-        extra_payload["ExtraField"] = "Extra Value"
-        response = await create_shipment(self.valid_shipment_id, extra_payload)
-        self.assertIsNone(response)
+    async def test_create_shipment_duplicate_id(self):
+        """Test creating a shipment with a duplicate ID."""
+        # First insertion (should succeed)
+        result = await create_shipment(
+            self.valid_shipment_id, self.valid_payload
+        )
+        self.assertTrue(
+            result["success"], f"Expected success but got: {result}"
+        )
 
-    async def test_create_shipment_with_different_id_format(self):
-        response = await create_shipment("123-NEW-SHIPMENT", self.valid_payload)
-        self.assertIsNone(response)
+        # Second insertion (should fail due to duplicate ID)
+        result = await create_shipment(
+            self.valid_shipment_id, self.valid_payload
+        )
+        self.assertFalse(
+            result["success"], f"Expected failure but got: {result}"
+        )
+        self.assertEqual(result["error"], "Duplicate shipment ID")
 
-    # --- FAILURE CASES ---
-    async def test_create_shipment_missing_fields(self):
-        invalid_payload = {}  # Completely missing required fields
+    async def test_create_shipment_invalid_id_format(self):
+        """Test creating a shipment with an invalid ID format."""
         with self.assertRaises(ValueError):
-            await create_shipment(self.valid_shipment_id, invalid_payload)
+            await create_shipment(
+                self.invalid_shipment_id, self.valid_payload
+            )
 
-    async def test_create_shipment_invalid_field_types(self):
-        invalid_payload = copy.deepcopy(self.valid_payload)
-        invalid_payload["ID"] = 123456  # Should be a string
+    async def test_create_shipment_missing_required_fields(self):
+        """Test creating a shipment with missing required fields."""
+        invalid_payload = self.valid_payload.copy()
+        del invalid_payload["Delivery"]  # Remove required field
+        with self.assertRaises(ValueError):
+            await create_shipment(
+                self.valid_shipment_id, invalid_payload
+            )
+
+    async def test_create_shipment_invalid_data_type(self):
+        """Test creating a shipment with invalid data types."""
+        invalid_payload = self.valid_payload.copy()
+        invalid_payload["ID"] = 123456  # Invalid type (should be string)
         with self.assertRaises(TypeError):
-            await create_shipment(self.valid_shipment_id, invalid_payload)
+            await create_shipment(
+                self.valid_shipment_id, invalid_payload
+            )
 
-    async def test_create_shipment_invalid_shipment_id(self):
+    async def test_create_shipment_empty_data(self):
+        """Test creating a shipment with empty data."""
         with self.assertRaises(ValueError):
-            await create_shipment(self.invalid_shipment_id, self.valid_payload)
+            await create_shipment(self.valid_shipment_id, {})
 
-    async def test_create_shipment_nonexistent_shipment_id(self):
-        nonexistent_shipment_id = "SHIP-NOTFOUND"
-        with self.assertRaises(FileNotFoundError):
-            await create_shipment(nonexistent_shipment_id, self.valid_payload)
+    async def test_create_shipment_invalid_consignment_id_type(self):
+        """Test creating a shipment with an invalid consignment ID type."""
+        invalid_payload = self.valid_payload.copy()
+        invalid_payload["Consignment"]["ID"] = 123
+        with self.assertRaises(TypeError):
+            await create_shipment(
+                self.valid_shipment_id, invalid_payload
+            )
+
+    async def test_create_shipment_large_data(self):
+        """Test creating a shipment with a large amount of data."""
+        large_payload = self.valid_payload.copy()
+        large_payload["AdditionalData"] = {
+            "LargeField": "A" * 1000000
+        }  # Large data field
+        result = await create_shipment(
+            self.valid_shipment_id, large_payload
+        )
+        self.assertTrue(
+            result["success"], f"Expected success but got: {result}"
+        )
+        self.assertIn("inserted_id", result)
+
 
 if __name__ == "__main__":
     unittest.main()
