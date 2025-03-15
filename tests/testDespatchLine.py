@@ -1,107 +1,56 @@
+import json
 import unittest
-from src.despatch.despatchLine import app, despatch_advice_store, despatch_lines_store
-# from src.mongodb import getOrderInfo
-# from src.despatch.despatchLine import despatchLineCreate
+from unittest.mock import patch, MagicMock
+from src.despatch.despatchLine import despatchLineCreate
 
-# Testing the despatch line section
-class testDespatchLineCreate(unittest.TestCase):
+class TestLambdaFunction(unittest.TestCase):
+    @patch("lambda_function.collection")
+    def test_missing_body(self, mock_collection):
+        event = {}  # No "body" in event
+        result = despatchLineCreate(event, None)
+        self.assertEqual(result["statusCode"], 400)
+        self.assertIn("Request body missing", result["body"])
 
-    def setUp(self):
-        self.app = app.test_client()
-        self.app.testing = True
-        
-        # Reset stores before each test
-        despatch_advice_store.clear()
-        despatch_lines_store.clear()
-        
-        # Add sample data for existing despatch ID
-        despatch_advice_store["DESP-123456"] = 10
+    @patch("lambda_function.collection")
+    def test_invalid_json(self, mock_collection):
+        # Event body that cannot be parsed as JSON
+        event = {"body": "not a valid json"}
+        result = despatchLineCreate(event, None)
+        self.assertEqual(result["statusCode"], 400)
+        self.assertIn("Invalid JSON format", result["body"])
 
-    def test_despatchNotFound(self):
-        response = self.app.put(
-            "/v1/despatch/DESP-123123/createDespatchLine",
-            json={"delivered_quantity": 5}
-        )
-        self.assertEqual(response.status_code, 404)
-        self.assertIn("not found", response.get_json()["message"])
+    @patch("lambda_function.collection")
+    def test_missing_order_id(self, mock_collection):
+        event = {"body": json.dumps({"some_field": "value"})}
+        result = despatchLineCreate(event, None)
+        self.assertEqual(result["statusCode"], 400)
+        self.assertIn("order_id is required", result["body"])
 
-    def test_missingDeliveredQuantity(self):
-        response = self.app.put(
-            "/v1/despatch/DESP-123456/createDespatchLine",
-            json={}
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("Missing", response.get_json()["message"])
+    @patch("lambda_function.collection")
+    def test_duplicate_order_id(self, mock_collection):
+        # Simulate that the collection already has a record with the given order_id
+        mock_collection.find_one.return_value = {"order_id": "order123"}
+        event = {"body": json.dumps({"order_id": "order123"})}
+        result = despatchLineCreate(event, None)
+        self.assertEqual(result["statusCode"], 409)
+        self.assertIn("Despatch advice for this order already exists", result["body"])
 
-    def test_invaliDeliveredQuantityType(self):
-        response = self.app.put(
-            "/v1/despatch/DESP-123456/createDespatchLine",
-            json={"delivered_quantity": "five"}
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("non-negative number", response.get_json()["message"])
-
-    def test_deliveredExceedsOrder(self):
-        response = self.app.put(
-            "/v1/despatch/DESP-123456/createDespatchLine",
-            json={"delivered_quantity": 15}
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("exceeds", response.get_json()["message"])
-
-    def test_missingBackorderReason(self):
-        response = self.app.put(
-            "/v1/despatch/DESP-123456/createDespatchLine",
-            json={"delivered_quantity": 8}
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("reason", response.get_json()["message"])
-
-    def test_successfulCompletedStatus(self):
-        response = self.app.put(
-            "/v1/despatch/DESP-123456/createDespatchLine",
-            json={"delivered_quantity": 10}
-        )
-        self.assertEqual(response.status_code, 200)
-        lines = despatch_lines_store.get("DESP-123456", [])
-        self.assertEqual(len(lines), 1)
-        self.assertEqual(lines[0]["status"], "Completed")
-        self.assertIsNone(lines[0]["backorder_reason"])
-
-    def test_successfulRevisedStatus(self):
-        response = self.app.put(
-            "/v1/despatch/DESP-123456/createDespatchLine",
-            json={
-                "delivered_quantity": 7,
-                "backorder_reason": "Out of stock"
-            }
-        )
-        self.assertEqual(response.status_code, 200)
-        lines = despatch_lines_store.get("DESP-123456", [])
-        self.assertEqual(len(lines), 1)
-        self.assertEqual(lines[0]["status"], "Revised")
-        self.assertEqual(lines[0]["backorder_quantity"], 3)
-        self.assertEqual(lines[0]["backorder_reason"], "Out of stock")
-
-    def test_multipleLinesCreation(self):
-        # First request
-        self.app.put(
-            "/v1/despatch/DESP-123456/createDespatchLine",
-            json={
-                "delivered_quantity": 5,
-                "backorder_reason": "Partial shipment"
-            }
-        )
-        # Second request
-        self.app.put(
-            "/v1/despatch/DESP-123456/createDespatchLine",
-            json={"delivered_quantity": 5}
-        )
-        
-        lines = despatch_lines_store.get("DESP-123456", [])
-        self.assertEqual(len(lines), 2)
-        self.assertEqual(lines[0]["backorder_quantity"], 5)
-        self.assertEqual(lines[1]["status"], "Completed")
+    @patch("lambda_function.collection")
+    def test_successful_insertion(self, mock_collection):
+        # Simulate that there is no existing despatch advice for the order
+        mock_collection.find_one.return_value = None
+        # Simulate successful insertion (the return value is not used in the handler)
+        mock_collection.insert_one.return_value = MagicMock()
+        order_id = "order456"
+        event = {"body": json.dumps({"order_id": order_id})}
+        result = despatchLineCreate(event, None)
+        self.assertEqual(result["statusCode"], 200)
+        response_body = json.loads(result["body"])
+        self.assertEqual(response_body["order_id"], order_id)
+        self.assertEqual(response_body["status"], "Initiated")
+        self.assertTrue(response_body["despatch_id"].startswith("D-"))
+        self.assertEqual(response_body["xml"], f"<DespatchAdvice><OrderId>{order_id}</OrderId></DespatchAdvice>")
+        self.assertEqual(response_body["lines"], [])
 
 if __name__ == '__main__':
     unittest.main()
