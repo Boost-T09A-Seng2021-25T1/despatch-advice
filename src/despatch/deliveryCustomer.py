@@ -2,6 +2,7 @@
 # This file will handle the delivery Customer section
 
 # ================================================
+<<<<<<< HEAD
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
@@ -110,3 +111,16 @@ def deliveryCustomer(despatchID):
             client.close()
             
     return OrderInformation
+=======
+
+
+import sys
+import os
+
+
+sys.path.append(os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__), "..", ".."
+    )
+))
+>>>>>>> origin/main
