@@ -397,7 +397,7 @@ def json_to_xml_despatch_advice(json_obj):
         }</cbc:DeliveredQuantity>
         <cac:OrderLineReference>
             <cbc:LineID>{line.get('OrderLineReference', {}).
-                        get('LineID', '')}</cbc:LineID>
+                            get('LineID', '')}</cbc:LineID>
         </cac:OrderLineReference>
         <cac:Item>
             <cbc:Name>{item.get('Name', '')}</cbc:Name>
