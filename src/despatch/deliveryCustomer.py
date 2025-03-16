@@ -1,8 +1,10 @@
 import os
 from src.mongodb import getOrderInfo, dbConnect
-import copy
 
-dirPath = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+dirPath = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..")
+)
+
 
 async def deliveryCustomer(despatchID):
     # Connecting to db
@@ -18,10 +20,10 @@ async def deliveryCustomer(despatchID):
 
     # Result python dictionary
     OrderInformation = {
-        "CustomerAssignedAccountID": "",  
-        "SupplierAssignedAccountID": "",  
+        "CustomerAssignedAccountID": "",
+        "SupplierAssignedAccountID": "",
         "Party": {
-            "PartyName": "",  
+            "PartyName": "",
             "PostalAddress": {
                 "StreetName": "",
                 "BuildingName": "",
@@ -30,7 +32,7 @@ async def deliveryCustomer(despatchID):
                 "PostalZone": "",
                 "CountrySubentity": "",
                 "AddressLine": {
-                    "Line": ""  
+                    "Line": ""
                 },
                 "Country": {
                     "IdentificationCode": ""
@@ -64,38 +66,92 @@ async def deliveryCustomer(despatchID):
         if result and "DeliveryCustomerParty" in result:
             delivery_party = result["DeliveryCustomerParty"]
 
-            OrderInformation["CustomerAssignedAccountID"] = delivery_party.get("CustomerAssignedAccountID", "")
-            OrderInformation["SupplierAssignedAccountID"] = delivery_party.get("SupplierAssignedAccountID", "")
+            OrderInformation[
+                "CustomerAssignedAccountID"
+                ] = delivery_party.get(
+                "CustomerAssignedAccountID", ""
+            )
+            OrderInformation[
+                "SupplierAssignedAccountID"
+                ] = delivery_party.get(
+                "SupplierAssignedAccountID", ""
+            )
 
             if "Party" in delivery_party:
                 party = delivery_party["Party"]
-                OrderInformation["Party"]["PartyName"] = party.get("PartyName", "")
+                OrderInformation["Party"]["PartyName"] = party.get(
+                    "PartyName", ""
+                )
 
                 if "PostalAddress" in party:
                     postal = party["PostalAddress"]
                     for key in OrderInformation["Party"]["PostalAddress"]:
                         if key == "Country":
-                            OrderInformation["Party"]["PostalAddress"]["Country"]["IdentificationCode"] = postal.get("Country", {}).get("IdentificationCode", "")
+                            OrderInformation[
+                                "Party"
+                            ][
+                                "PostalAddress"
+                            ][
+                                "Country"
+                            ][
+                                "IdentificationCode"
+                            ] = postal.get("Country", {}).get(
+                                "IdentificationCode", ""
+                            )
                         elif key == "AddressLine":
-                            OrderInformation["Party"]["PostalAddress"]["AddressLine"]["Line"] = postal.get("AddressLine", {}).get("Line", "")  # Fixed AddressLine
+                            OrderInformation[
+                                "Party"
+                            ][
+                                "PostalAddress"
+                            ][
+                                "AddressLine"
+                            ]["Line"] = postal.get(
+                                "AddressLine", {}
+                            ).get("Line", "")
                         else:
-                            OrderInformation["Party"]["PostalAddress"][key] = postal.get(key, "")
+                            OrderInformation[
+                                "Party"
+                            ][
+                                "PostalAddress"
+                            ][key] = postal.get(key, "")
 
                 if "PartyTaxScheme" in party:
                     tax_scheme = party["PartyTaxScheme"]
                     for key in OrderInformation["Party"]["PartyTaxScheme"]:
                         if key == "TaxScheme":
                             ts = tax_scheme.get("TaxScheme", {})
-                            OrderInformation["Party"]["PartyTaxScheme"]["TaxScheme"]["ID"] = ts.get("ID", "")
-                            OrderInformation["Party"]["PartyTaxScheme"]["TaxScheme"]["TaxTypeCode"] = ts.get("TaxTypeCode", "")
+                            OrderInformation[
+                                "Party"
+                            ][
+                                "PartyTaxScheme"
+                            ][
+                                "TaxScheme"
+                            ]["ID"] = ts.get("ID", "")
+                            OrderInformation[
+                                "Party"
+                            ][
+                                "PartyTaxScheme"
+                            ][
+                                "TaxScheme"
+                            ]["TaxTypeCode"] = ts.get(
+                                "TaxTypeCode", ""
+                            )
                         else:
-                            OrderInformation["Party"]["PartyTaxScheme"][key] = tax_scheme.get(key, "")
+                            OrderInformation[
+                                "Party"
+                            ][
+                                "PartyTaxScheme"
+                            ][key] = tax_scheme.get(key, "")
 
                 if "Contact" in party:
                     contact = party["Contact"]
-                    if contact: 
+                    if contact:
                         for key in OrderInformation["Party"]["Contact"]:
-                            OrderInformation["Party"]["Contact"][key] = contact.get(key, "")
+                            OrderInformation[
+                                "Party"
+                            ][
+                                "Contact"
+                            ][key] = contact.get(key, "")
 
     except Exception as e:
         print(f"Database connection error: {e}")
