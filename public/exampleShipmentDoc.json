@@ -1,0 +1,26 @@
+{
+    "ID": "SHIP-123456",
+    "Consignment": {
+        "ID": "CON-789012"
+    },
+    "Delivery": {
+        "DeliveryAddress": {
+            "StreetName": "Main Street",
+            "BuildingName": "Building A",
+            "BuildingNumber": "10",
+            "CityName": "Sample City",
+            "PostalZone": "12345",
+            "CountrySubentity": "Region X",
+            "AddressLine": "Address details",
+            "Country": {
+                "IdentificationCode": "US"
+            }
+        },
+        "RequestedDeliveryPeriod": {
+            "StartDate": "2025-06-01",
+            "StartTime": "08:00",
+            "EndDate": "2025-06-05",
+            "EndTime": "18:00"
+        }
+    }
+}
