@@ -1,0 +1,8 @@
+{
+    "valid_order_id": "ORDER-12345",
+    "valid_sales_order_id": "SALES-98765",
+    "new_order_id": "ORDER-54321",
+    "new_sales_order_id": "SALES-67890",
+    "nonexistent_order_id": "ORDER-00000",
+    "nonexistent_sales_order_id": "SALES-00000"
+}
