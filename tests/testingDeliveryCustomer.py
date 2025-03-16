@@ -91,7 +91,7 @@ class TestDeliveryCustomer(unittest.IsolatedAsyncioTestCase):
             self.assertIn("ExemptionReason", tax_scheme)
             self.assertIn("TaxScheme", tax_scheme)
 
-         # Test that TaxScheme has a nested field
+        # Test that TaxScheme has a nested field
         tScheme_add = tax_scheme["TaxScheme"]
         self.assertIsInstance(tScheme_add, dict)
         self.assertIn("ID", tScheme_add)

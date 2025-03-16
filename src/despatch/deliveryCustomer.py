@@ -69,8 +69,8 @@ async def deliveryCustomer(UUID):
         for key in OrderInformation["Party"]["PostalAddress"]:
             if key == "Country":
                 OrderInformation["Party"][
-                "PostalAddress"][
-                "Country"][
+                    "PostalAddress"
+                ]["Country"][
                     "IdentificationCode"
                 ] = (
                     postal.get("Country", {})
@@ -78,8 +78,8 @@ async def deliveryCustomer(UUID):
                 )
             elif key == "AddressLine":
                 OrderInformation["Party"][
-                    "PostalAddress"][
-                    "AddressLine"][
+                    "PostalAddress"
+                ]["AddressLine"][
                     "Line"
                 ] = (
                     postal.get("AddressLine", {})
@@ -102,8 +102,8 @@ async def deliveryCustomer(UUID):
                     "TaxTypeCode"
                 ] = ts.get("TaxTypeCode", "")
             else:
-                OrderInformation["Party"]["PartyTaxScheme"][key] = tax_scheme.get(
-                    key, ""
+                OrderInformation["Party"]["PartyTaxScheme"][key] = (
+                    tax_scheme.get(key, "")
                 )
 
         # Contact if present.
