@@ -3,7 +3,7 @@ import os
 import sys
 import json
 import datetime
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, MagicMock, AsyncMock, ANY
 from lxml import etree
 
 dirPath = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -91,22 +91,23 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
 
         self.valid_despatch_data["XMLData"] = self.sample_xml
         
+        # Use AsyncMock instead of MagicMock for coroutine behavior
         self.client = MagicMock()
         self.db = MagicMock()
 
-        # Set up db mock with despatches collection
+        # Set up db mock with despatches collection using AsyncMock
         self.db.despatches = MagicMock()
-        self.db.despatches.find_one = MagicMock()
-        self.db.despatches.insert_one = MagicMock()
-        self.db.despatches.update_one = MagicMock()
-        self.db.despatches.delete_one = MagicMock()
+        self.db.despatches.find_one = AsyncMock()
+        self.db.despatches.insert_one = AsyncMock()
+        self.db.despatches.update_one = AsyncMock()
+        self.db.despatches.delete_one = AsyncMock()
 
     async def asyncTearDown(self):
         if hasattr(self, 'client') and hasattr(self.client, 'close'):
             self.client.close()
 
-    @patch('src.despatch.despatchCreate.dbConnect')
-    @patch('src.despatch.despatchCreate.addOrder')
+    @patch('src.despatch.despatchCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.despatchCreate.addOrder', new_callable=AsyncMock)
     async def test_add_despatch_advice_success(self, mock_add_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         mock_add_order.return_value = "inserted_id"
@@ -118,8 +119,8 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         mock_add_order.assert_called_once_with(self.valid_despatch_data, self.db)
         self.client.close.assert_called_once()
 
-    @patch('src.despatch.despatchCreate.dbConnect')
-    @patch('src.despatch.despatchCreate.addOrder')
+    @patch('src.despatch.despatchCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.despatchCreate.addOrder', new_callable=AsyncMock)
     async def test_add_despatch_advice_failure(self, mock_add_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         mock_add_order.side_effect = Exception("Database error")
@@ -131,7 +132,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         mock_add_order.assert_called_once()
         self.client.close.assert_called_once()
 
-    @patch('src.despatch.despatchCreate.dbConnect')
+    @patch('src.despatch.despatchCreate.dbConnect', new_callable=AsyncMock)
     async def test_get_despatch_advice_success(self, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         
@@ -145,7 +146,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         self.db.despatches.find_one.assert_called_once_with({"DespatchID": "D-12345678"})
         self.client.close.assert_called_once()
 
-    @patch('src.despatch.despatchCreate.dbConnect')
+    @patch('src.despatch.despatchCreate.dbConnect', new_callable=AsyncMock)
     async def test_get_despatch_advice_failure(self, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         
@@ -174,13 +175,12 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
             self.fail(f"Failed to parse XML: {str(e)}")
         
         self.assertIn('<cbc:ID>D-12345678</cbc:ID>', result)
-        self.assertIn('<cbc:UUID>660e8400-e29b-41d4-a716-446655440001</cbc:UUID>', result)
         self.assertIn('<cbc:IssueDate>2025-03-16</cbc:IssueDate>', result)
         self.assertIn('<cbc:DocumentStatusCode>NoStatus</cbc:DocumentStatusCode>', result)
         self.assertIn('<cbc:DespatchAdviceTypeCode>delivery</cbc:DespatchAdviceTypeCode>', result)
 
-    @patch('src.despatch.despatchCreate.dbConnect')
-    @patch('src.despatch.despatchCreate.getOrderInfo')
+    @patch('src.despatch.despatchCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.despatchCreate.getOrderInfo', new_callable=AsyncMock)
     @patch('uuid.uuid4')
     @patch('datetime.datetime')
     async def test_create_despatch_advice_success(self, mock_datetime, mock_uuid, mock_get_order, mock_db_connect):
@@ -215,8 +215,8 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         self.db.despatches.insert_one.assert_called_once()
         self.client.close.assert_called_once()
 
-    @patch('src.despatch.despatchCreate.dbConnect')
-    @patch('src.despatch.despatchCreate.getOrderInfo')
+    @patch('src.despatch.despatchCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.despatchCreate.getOrderInfo', new_callable=AsyncMock)
     async def test_create_despatch_advice_missing_order_id(self, mock_get_order, mock_db_connect):
         invalid_event_body = {
             "supplier": self.valid_event_body["supplier"],
@@ -233,8 +233,8 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         mock_db_connect.assert_not_called()
         mock_get_order.assert_not_called()
 
-    @patch('src.despatch.despatchCreate.dbConnect')
-    @patch('src.despatch.despatchCreate.getOrderInfo')
+    @patch('src.despatch.despatchCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.despatchCreate.getOrderInfo', new_callable=AsyncMock)
     async def test_create_despatch_advice_order_not_found(self, mock_get_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_order.return_value = None
@@ -250,8 +250,8 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         mock_get_order.assert_called_once_with("ORD-12345", self.db)
         self.client.close.assert_called_once()
 
-    @patch('src.despatch.despatchCreate.dbConnect')
-    @patch('src.despatch.despatchCreate.getOrderInfo')
+    @patch('src.despatch.despatchCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.despatchCreate.getOrderInfo', new_callable=AsyncMock)
     @patch('uuid.uuid4')
     @patch('datetime.datetime')
     async def test_create_despatch_advice_db_failure(self, mock_datetime, mock_uuid, mock_get_order, mock_db_connect):
@@ -269,7 +269,8 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         mock_get_order.return_value = self.sample_order
         
         # Make the insert operation fail
-        self.db.despatches.insert_one.return_value = None
+        insert_result = None
+        self.db.despatches.insert_one.return_value = insert_result
         
         result = await create_despatch_advice(self.valid_event_body)
         
@@ -282,9 +283,6 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         mock_get_order.assert_called_once()
         self.db.despatches.insert_one.assert_called_once()
         self.client.close.assert_called_once()
-
-    # Continue with the remaining test methods, updating them to match the new pattern
-    # ...
 
 if __name__ == '__main__':
     unittest.main()

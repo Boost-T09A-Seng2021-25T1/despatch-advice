@@ -2,7 +2,7 @@ import unittest
 import os
 import sys
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 dirPath = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(dirPath)
@@ -72,8 +72,16 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
             "LastModified": "2025-03-15T10:00:00"
         }
         
+        # Use AsyncMock for better coroutine mocking
         self.client = MagicMock()
         self.db = MagicMock()
+        
+        # Set up db mock with orders collection
+        self.db.orders = MagicMock()
+        self.db.orders.find_one = AsyncMock()
+        self.db.orders.insert_one = AsyncMock()
+        self.db.orders.update_one = AsyncMock()
+        self.db.orders.delete_one = AsyncMock()
 
     async def asyncTearDown(self):
         if hasattr(self, 'client') and hasattr(self.client, 'close'):
@@ -147,16 +155,21 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Item 2 has invalid price", issues)
         self.assertEqual(document, invalid_order)
 
-    @patch('src.despatch.orderCreate.dbConnect')
-    @patch('src.despatch.orderCreate.addOrder')
+    @patch('src.despatch.orderCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.orderCreate.addOrder', new_callable=AsyncMock)
     @patch('uuid.uuid4')
     async def test_create_order_success(self, mock_uuid, mock_add_order, mock_db_connect):
-        mock_uuid.return_value.hex = "abcdef1234567890"
-        mock_uuid.return_value = "550e8400-e29b-41d4-a716-446655440000"
+        # Setup UUID mock
+        random_uuid = MagicMock()
+        random_uuid.hex = "abcdef1234567890"
+        mock_uuid.return_value = random_uuid
         
         mock_db_connect.return_value = (self.client, self.db)
         
-        mock_add_order.return_value = "inserted_id"
+        # Set up the insert_one mock to return a result
+        insert_result = MagicMock()
+        insert_result.inserted_id = "mock_id"
+        mock_add_order.return_value = insert_result
         
         result = await create_order(self.valid_event_body)
         
@@ -172,8 +185,8 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(mock_add_order.call_args[0][0]["Items"]), 2)
         self.client.close.assert_called_once()
 
-    @patch('src.despatch.orderCreate.dbConnect')
-    @patch('src.despatch.orderCreate.addOrder')
+    @patch('src.despatch.orderCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.orderCreate.addOrder', new_callable=AsyncMock)
     async def test_create_order_invalid_input(self, mock_add_order, mock_db_connect):
         invalid_event_body = {
             "customer_id": "CUST-001"
@@ -189,8 +202,8 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         mock_db_connect.assert_not_called()
         mock_add_order.assert_not_called()
 
-    @patch('src.despatch.orderCreate.dbConnect')
-    @patch('src.despatch.orderCreate.getOrderInfo')
+    @patch('src.despatch.orderCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.orderCreate.getOrderInfo', new_callable=AsyncMock)
     async def test_validate_order_valid(self, mock_get_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         
@@ -208,8 +221,8 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         mock_get_order.assert_called_once_with("ORD-12345", self.db)
         self.client.close.assert_called_once()
 
-    @patch('src.despatch.orderCreate.dbConnect')
-    @patch('src.despatch.orderCreate.getOrderInfo')
+    @patch('src.despatch.orderCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.orderCreate.getOrderInfo', new_callable=AsyncMock)
     async def test_validate_order_not_found(self, mock_get_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         
@@ -226,8 +239,8 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         mock_get_order.assert_called_once_with("ORD-NOTFOUND", self.db)
         self.client.close.assert_called_once()
 
-    @patch('src.despatch.orderCreate.dbConnect')
-    @patch('src.despatch.orderCreate.getOrderInfo')
+    @patch('src.despatch.orderCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.orderCreate.getOrderInfo', new_callable=AsyncMock)
     async def test_get_order_success(self, mock_get_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         
@@ -245,8 +258,8 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         mock_get_order.assert_called_once_with("ORD-12345", self.db)
         self.client.close.assert_called_once()
 
-    @patch('src.despatch.orderCreate.dbConnect')
-    @patch('src.despatch.orderCreate.getOrderInfo')
+    @patch('src.despatch.orderCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.orderCreate.getOrderInfo', new_callable=AsyncMock)
     async def test_check_stock_available(self, mock_get_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         
@@ -280,8 +293,8 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         mock_get_order.assert_called_once_with("ORD-12345", self.db)
         self.client.close.assert_called_once()
 
-    @patch('src.despatch.orderCreate.dbConnect')
-    @patch('src.despatch.orderCreate.getOrderInfo')
+    @patch('src.despatch.orderCreate.dbConnect', new_callable=AsyncMock)
+    @patch('src.despatch.orderCreate.getOrderInfo', new_callable=AsyncMock)
     async def test_check_stock_insufficient(self, mock_get_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         
