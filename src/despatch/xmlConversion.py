@@ -252,8 +252,9 @@ def json_to_xml_despatch_advice(json_obj):
                     {sp_postal.get('BuildingNumber', '')}
                 </cbc:BuildingNumber>
                 <cbc:CityName>{sp_postal.get('CityName', '')}</cbc:CityName>
-                <cbc:PostalZone>{sp_postal.get('PostalZone',
-                                               '')}</cbc:PostalZone>
+                "<cbc:PostalZone>"
+                f"{sp_postal.get('PostalZone', '')}"
+                "</cbc:PostalZone>"
                 <cbc:CountrySubentity>
                     {sp_postal.get('CountrySubentity', '')}
                 </cbc:CountrySubentity>
@@ -396,8 +397,9 @@ def json_to_xml_despatch_advice(json_obj):
             line.get('DeliveredQuantity', {}).get('value', '')
         }</cbc:DeliveredQuantity>
         <cac:OrderLineReference>
-            <cbc:LineID>{line.get('OrderLineReference', {}).
-                            get('LineID', '')}</cbc:LineID>
+            "<cbc:LineID>"
+            f"{line.get('OrderLineReference', {}).get('LineID', '')}"
+            "</cbc:LineID>"
         </cac:OrderLineReference>
         <cac:Item>
             <cbc:Name>{item.get('Name', '')}</cbc:Name>
