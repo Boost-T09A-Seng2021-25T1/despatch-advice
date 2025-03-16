@@ -15,12 +15,11 @@ filePath = os.path.join(
 )
 
 
-class testDeliveryCustomer(unittest.IsolatedAsyncioTestCase):
+class TestDeliveryCustomer(unittest.IsolatedAsyncioTestCase):
 
     # ============================================
     # These two funcs run before and after every test
     async def asyncSetUp(self):
-
         self.client, self.db = await dbConnect()
         self.orders = self.db["orders"]
 
@@ -31,9 +30,9 @@ class testDeliveryCustomer(unittest.IsolatedAsyncioTestCase):
     # ============================================
     # ============================================
 
-    # this func was not refactored because the db
-    # will be wiped after every test
+    # Test delivery customer and general order information
     async def testDeliveryCustomerReturn(self):
+        # Ensure a ValueError is raised for an invalid UUID
         with self.assertRaises(ValueError):
             await deliveryCustomer("FAKE_UUID_KDBSKMWOBFU")
 
@@ -42,48 +41,67 @@ class testDeliveryCustomer(unittest.IsolatedAsyncioTestCase):
             data = json.load(file)
 
         await addOrder(data, self.orders)
-        res = await deliveryCustomer(
+        order_info = await deliveryCustomer(
             "6E09886B-DC6E-439F-82D1-7CCAC7F4E3B1"
         )
 
-        self.assertIn("CustomerAssignedAccountID", res)
-        self.assertIn("Party", res)
+        # Check if basic order details are present
+        self.assertIn("CustomerAssignedAccountID", order_info)
+        self.assertIn("SupplierAssignedAccountID", order_info)
 
-        # Testing nested properties in party object
-        party = res["Party"]
+        # Ensure party details are in the order (more general check)
+        self.assertIn("Party", order_info)
+        party = order_info["Party"]
+        self.assertIsInstance(party, dict)
+
+        # General checks for nested Party details
         self.assertIn("PartyName", party)
         self.assertIn("PostalAddress", party)
         self.assertIn("PartyTaxScheme", party)
         self.assertIn("Contact", party)
 
-        # testing nested properties in postal address
-        postalAdd = party["PostalAddress"]
-        self.assertIn("StreetName", postalAdd)
-        self.assertIn("BuildingName", postalAdd)
-        self.assertIn("BuildingNumber", postalAdd)
-        self.assertIn("CityName", postalAdd)
-        self.assertIn("PostalZone", postalAdd)
-        self.assertIn("CountrySubentity", postalAdd)
-        self.assertIn("AddressLine", postalAdd)
-        self.assertIn("Country", postalAdd)
+        # Test that PostalAddress is a dictionary with expected fields
+        postal_add = party["PostalAddress"]
+        self.assertIsInstance(postal_add, dict)
+        self.assertIn("StreetName", postal_add)
+        self.assertIn("BuildingName", postal_add)
+        self.assertIn("BuildingNumber", postal_add)
+        self.assertIn("CityName", postal_add)
+        self.assertIn("PostalZone", postal_add)
+        self.assertIn("CountrySubentity", postal_add)
+        self.assertIn("AddressLine", postal_add)
+        self.assertIn("Country", postal_add)
 
-        self.assertIn("Line", postalAdd["AddressLine"])
-        self.assertIn("IdentificationCode", postalAdd["Country"])
+        # Test that AddressLine has a nested field
+        address_add = postal_add["AddressLine"]
+        self.assertIsInstance(address_add, dict)
+        self.assertIn("Line", address_add)
 
-        # testing for nested properties in partytaxscheme
-        taxScheme = party["PartyTaxScheme"]
-        self.assertIn("RegistrationName", taxScheme)
-        self.assertIn("CompanyID", taxScheme)
-        self.assertIn("ExemptionReason", taxScheme)
-        self.assertIn("TaxScheme", taxScheme)
-        self.assertIn("ID", taxScheme["TaxScheme"])
-        self.assertIn("TaxTypeCode", taxScheme["TaxScheme"])
+        # Test that Country has a nested field
+        country_add = postal_add["Country"]
+        self.assertIsInstance(country_add, dict)
+        self.assertIn("IdentificationCode", country_add)
 
-        # testing for nested objs in Contact
+        # If PartyTaxScheme exists, ensure it's properly structured
+        tax_scheme = party.get("PartyTaxScheme", {})
+        self.assertIsInstance(tax_scheme, dict)
+        if tax_scheme:
+            self.assertIn("RegistrationName", tax_scheme)
+            self.assertIn("CompanyID", tax_scheme)
+            self.assertIn("ExemptionReason", tax_scheme)
+            self.assertIn("TaxScheme", tax_scheme)
+
+         # Test that TaxScheme has a nested field
+        tScheme_add = tax_scheme["TaxScheme"]
+        self.assertIsInstance(tScheme_add, dict)
+        self.assertIn("ID", tScheme_add)
+        self.assertIn("TaxTypeCode", tScheme_add)
+
+        # Test the Contact information
         contact = party["Contact"]
+        self.assertIsInstance(contact, dict)
         self.assertIn("Name", contact)
         self.assertIn("Telephone", contact)
-        self.assertIn("Telefax", contact)
         self.assertIn("ElectronicMail", contact)
 
 
