@@ -1,15 +1,15 @@
 from src.apiEndpoint import endpointFunc
 import unittest
 import os
-
+import asyncio
 
 os.path.abspath(os.path.join(
     os.path.dirname(__file__), ".."))
 
 
-class testFirstApiEndpoint(unittest.TestCase):
+class testFirstApiEndpoint(unittest.IsolatedAsyncioTestCase):  # Change to IsolatedAsyncioTestCase
 
-    def testForNone(self):
+    async def testForNone(self):  # Add async here
         invalidArgs = [
             (None, {}, {}, {}),
             ("", None, {}, {}),
@@ -23,7 +23,7 @@ class testFirstApiEndpoint(unittest.TestCase):
 
         for arguments in invalidArgs:
             with self.assertRaises(TypeError):
-                endpointFunc(*arguments)
+                await endpointFunc(*arguments)  # Add await here
 
 
 if __name__ == '__main__':
