@@ -4,3 +4,7 @@ lxml==5.3.1
 pymongo
 python-dotenv
 motor
+uuid
+datetime
+logging
+mock
