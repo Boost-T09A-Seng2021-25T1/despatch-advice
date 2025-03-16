@@ -6,7 +6,7 @@ from src.despatch.despatchCreate import create_despatch_advice, validate_despatc
 from src.despatch.orderCreate import validate_order_document, create_order
 import copy
 
-def endpointFunc(
+async def endpointFunc(
     xmlDoc: str,
     shipment: dict,
     despatch: dict,
@@ -58,7 +58,7 @@ def endpointFunc(
         }
     
     try:
-        is_valid, validation_issues, order_json = validate_order_document(xmlDoc, "xml")
+        is_valid, validation_issues, order_json = await validate_order_document(xmlDoc, "xml")
         
         if not is_valid:
             return {
@@ -69,63 +69,64 @@ def endpointFunc(
                 })
             }
         
-        client, db = dbConnect()
-        
-        order_create_input = {
-            "customer_id": order_json.get("CustomerID"),
-            "items": order_json.get("Items", [])
-        }
-        
-        order_result = create_order(order_create_input)
-        order_response = json.loads(order_result.get("body", "{}"))
-        
-        if order_result.get("statusCode") != 200:
-            client.close()
-            return order_result
-        
-        # Call Yousef's function to handle delivery period requirements
-        delivery_period_result = process_delivery_period(shipment, order_response.get("order_id"))
-        
-        # Call Edward's function to handle backordering information
-        # This will be implemented when available
-        backordering_result = process_backordering(despatch, order_response.get("order_id"))
-        
-        despatch_input = {
-            "order_id": order_response.get("order_id"),
-            "supplier": {
-                "is_seller": sellerIsSupplier,
-                # Add any other supplier information from the input
-                **({} if not sellerIsSupplier else {"details": despatch.get("supplier_details", {})})
-            },
-            "customer": {
-                # Extract customer info from order or despatch input
-                "id": order_json.get("CustomerID"),
-                "details": despatch.get("customer_details", {})
+        client, db = await dbConnect()
+        try:
+            order_create_input = {
+                "customer_id": order_json.get("CustomerID"),
+                "items": order_json.get("Items", [])
             }
-        }
-        
-        despatch_result = create_despatch_advice(despatch_input)
-        despatch_response = json.loads(despatch_result.get("body", "{}"))
-        
-        if despatch_result.get("statusCode") != 200:
+            
+            order_result = await create_order(order_create_input)
+            order_response = json.loads(order_result.get("body", "{}"))
+            
+            if order_result.get("statusCode") != 200:
+                return order_result
+            
+            # Check if seller is supplier
+            sellerIsSupplier = supplier.get("is_seller", True)
+            
+            # Call function to handle delivery period requirements
+            delivery_period_result = process_delivery_period(shipment, order_response.get("order_id"))
+            
+            # Call function to handle backordering information
+            # This will be implemented when available
+            backordering_result = process_backordering(despatch, order_response.get("order_id"))
+            
+            despatch_input = {
+                "order_id": order_response.get("order_id"),
+                "supplier": {
+                    "is_seller": sellerIsSupplier,
+                    # Add any other supplier information from the input
+                    **(supplier or {})
+                },
+                "customer": {
+                    # Extract customer info from order or despatch input
+                    "id": order_json.get("CustomerID"),
+                    "details": despatch.get("customer_details", {})
+                }
+            }
+            
+            despatch_result = await create_despatch_advice(despatch_input)
+            despatch_response = json.loads(despatch_result.get("body", "{}"))
+            
+            if despatch_result.get("statusCode") != 200:
+                return despatch_result
+            
+            validation_result = await validate_despatch_advice(despatch_response.get("despatch_id"))
+            validation_response = json.loads(validation_result.get("body", "{}"))
+            
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "order": order_response,
+                    "despatch": despatch_response,
+                    "validation": validation_response,
+                    "delivery_period": delivery_period_result,
+                    "backordering": backordering_result
+                })
+            }
+        finally:
             client.close()
-            return despatch_result
-        
-        validation_result = validate_despatch_advice(despatch_response.get("despatch_id"))
-        validation_response = json.loads(validation_result.get("body", "{}"))
-        
-        client.close()
-        
-        return {
-            "statusCode": 200,
-            "body": json.dumps({
-                "order": order_response,
-                "despatch": despatch_response,
-                "validation": validation_response,
-                "delivery_period": delivery_period_result,
-                "backordering": backordering_result
-            })
-        }
         
     except Exception as e:
         return {
@@ -135,7 +136,7 @@ def endpointFunc(
 
 def process_delivery_period(shipment_info, order_id):
     """
-    Process delivery period requirements (Yousef's function)
+    Process delivery period requirements
     
     Args:
         shipment_info (dict): Shipment information
@@ -145,7 +146,6 @@ def process_delivery_period(shipment_info, order_id):
         dict: Result of processing
     """
     # This is a placeholder that will be replaced with actual implementation
-    # from Yousef
     return {
         "status": "processed",
         "order_id": order_id,
@@ -157,7 +157,7 @@ def process_delivery_period(shipment_info, order_id):
 
 def process_backordering(despatch_info, order_id):
     """
-    Process backordering information (Edward's function)
+    Process backordering information
     
     Args:
         despatch_info (dict): Despatch information
@@ -167,7 +167,6 @@ def process_backordering(despatch_info, order_id):
         dict: Result of processing
     """
     # This is a placeholder that will be replaced with actual implementation
-    # from Edward
     return {
         "status": "processed",
         "order_id": order_id,

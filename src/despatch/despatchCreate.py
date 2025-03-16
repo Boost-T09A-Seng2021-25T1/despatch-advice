@@ -45,6 +45,7 @@ def generate_initial_xml(despatch_id, issue_date):
     Returns:
         str: XML string for the initial despatch advice
     """
+    generated_uuid = str(uuid.uuid4())
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <DespatchAdvice xmlns="urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2"
         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
@@ -54,7 +55,7 @@ def generate_initial_xml(despatch_id, issue_date):
     <cbc:ProfileID>bpid:oasis:names:draft:bpss:ubl-2-sbs-despatch-advice-notification-draft</cbc:ProfileID>
     <cbc:ID>{despatch_id}</cbc:ID>
     <cbc:CopyIndicator>false</cbc:CopyIndicator>
-    <cbc:UUID>{uuid.uuid4()}</cbc:UUID>
+    <cbc:UUID>{generated_uuid}</cbc:UUID>
     <cbc:IssueDate>{issue_date}</cbc:IssueDate>
     <cbc:DocumentStatusCode>NoStatus</cbc:DocumentStatusCode>
     <cbc:DespatchAdviceTypeCode>delivery</cbc:DespatchAdviceTypeCode>
@@ -92,7 +93,9 @@ async def create_despatch_advice(event_body):
                     "body": json.dumps({"error": "Order does not exist"})
                 }
             
-            despatch_id = f"D-{uuid.uuid4().hex[:8].upper()}"
+            # Generate a random hex string for despatch ID
+            random_hex = uuid.uuid4().hex[:8].upper()
+            despatch_id = f"D-{random_hex}"
             despatch_uuid = str(uuid.uuid4())
             current_date = datetime.datetime.now().strftime("%Y-%m-%d")
             xml_content = generate_initial_xml(despatch_id, current_date)

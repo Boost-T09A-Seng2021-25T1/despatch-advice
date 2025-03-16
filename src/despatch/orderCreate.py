@@ -82,7 +82,11 @@ async def create_order(event_body):
                 "body": json.dumps({"error": "Invalid request format: missing required fields"})
             }
         
-        order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+        # Generate a random ID for the order
+        random_hex = uuid.uuid4().hex[:8].upper()
+        order_id = f"ORD-{random_hex}"
+        
+        # Generate a new UUID as a string
         order_uuid = str(uuid.uuid4())
         
         current_time = datetime.datetime.now().isoformat()
