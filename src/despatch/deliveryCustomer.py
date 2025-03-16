@@ -1,126 +1,102 @@
-# ================================================
-# This file will handle the delivery Customer section
-
-# ================================================
-<<<<<<< HEAD
-from pymongo import MongoClient
 import os
-from dotenv import load_dotenv
+from src.mongodb import getOrderInfo, dbConnect
+import copy
 
-def deliveryCustomer(despatchID):
+dirPath = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-    load_dotenv()
+async def deliveryCustomer(despatchID):
+    mongoClient, db = await dbConnect()
+    orders = db["orders"]
 
-    MDB_URI = os.getenv("MDB_URI")
+    data = await getOrderInfo(despatchID, orders)
+    error = "Error: could not retrieve despatch supplier information."
+    if not data:
+        mongoClient.close()
+        raise ValueError(error)
 
     OrderInformation = {
-        "CustomerID": "", 
-        "SupplierID": "",
+        "CustomerAssignedAccountID": "",  # Fixed key naming
+        "SupplierAssignedAccountID": "",  # Fixed key naming
         "Party": {
-            "PartyName": "",
+            "PartyName": "",  # Fixed assignment location
             "PostalAddress": {
-                "StreetName":"",
-                "BuildingName":"",
-                "BuildingNumber":"",
-                "CityName":"",
-                "PostalZone":"",
-                "CountrySubentity":"",
-                "AddressLine":"",
+                "StreetName": "",
+                "BuildingName": "",
+                "BuildingNumber": "",
+                "CityName": "",
+                "PostalZone": "",
+                "CountrySubentity": "",
+                "AddressLine": {
+                    "Line": ""  # Fixed AddressLine structure
+                },
                 "Country": {
-                    "IdentificationCode":""
+                    "IdentificationCode": ""
                 },
             },
             "PartyTaxScheme": {
-                "RegistrationName":"",
-                "CompanyID":"",
-                "ExemptionReason":"",
+                "RegistrationName": "",
+                "CompanyID": "",
+                "ExemptionReason": "",
                 "TaxScheme": {
-                    "ID":"",
-                    "TaxTypeCode":""
+                    "ID": "",
+                    "TaxTypeCode": ""
                 },
             },
             "Contact": {
-                "Name":"",
-                "Telephone":"",
-                "Telefax":"",
-                "ElectronicMail":""
-            } 
+                "Name": "",
+                "Telephone": "",
+                "Telefax": "",
+                "ElectronicMail": ""
+            }
         }
     }
 
     try:
-        client = MongoClient(MDB_URI)
-        db = client["ubl_docs"]
-        collection = db["orders"]
-
-        result = collection.find_one(
+        result = await orders.find_one(
             {"_id.ID": despatchID},
             {"DeliveryCustomerParty": 1, "_id": 0}
         )
-        
+
         if result and "DeliveryCustomerParty" in result:
             delivery_party = result["DeliveryCustomerParty"]
-            
-            # Extract CustomerID and SupplierID
-            OrderInformation["CustomerID"] = delivery_party.get("CustomerAssignedAccountID", "")
-            OrderInformation["SupplierID"] = delivery_party.get("SupplierAssignedAccountID", "")
-            
-            # Extract Party information
+
+            OrderInformation["CustomerAssignedAccountID"] = delivery_party.get("CustomerAssignedAccountID", "")
+            OrderInformation["SupplierAssignedAccountID"] = delivery_party.get("SupplierAssignedAccountID", "")
+
             if "Party" in delivery_party:
                 party = delivery_party["Party"]
-                
-                # PartyName
-                if "PartyName" in party:
-                    OrderInformation["Party"]["PartyName"] = party["PartyName"]
-                
-                # PostalAddress
+                OrderInformation["Party"]["PartyName"] = party.get("PartyName", "")
+
                 if "PostalAddress" in party:
                     postal = party["PostalAddress"]
                     for key in OrderInformation["Party"]["PostalAddress"]:
                         if key == "Country":
-                            if "Country" in postal and "IdentificationCode" in postal["Country"]:
-                                OrderInformation["Party"]["PostalAddress"]["Country"]["IdentificationCode"] = postal["Country"]["IdentificationCode"]
-                        elif key in postal:
-                            OrderInformation["Party"]["PostalAddress"][key] = postal[key]
-                
-                # PartyTaxScheme
+                            OrderInformation["Party"]["PostalAddress"]["Country"]["IdentificationCode"] = postal.get("Country", {}).get("IdentificationCode", "")
+                        elif key == "AddressLine":
+                            OrderInformation["Party"]["PostalAddress"]["AddressLine"]["Line"] = postal.get("AddressLine", {}).get("Line", "")  # Fixed AddressLine
+                        else:
+                            OrderInformation["Party"]["PostalAddress"][key] = postal.get(key, "")
+
                 if "PartyTaxScheme" in party:
                     tax_scheme = party["PartyTaxScheme"]
                     for key in OrderInformation["Party"]["PartyTaxScheme"]:
                         if key == "TaxScheme":
-                            if "TaxScheme" in tax_scheme:
-                                ts = tax_scheme["TaxScheme"]
-                                if "ID" in ts:
-                                    OrderInformation["Party"]["PartyTaxScheme"]["TaxScheme"]["ID"] = ts["ID"]
-                                if "TaxTypeCode" in ts:
-                                    OrderInformation["Party"]["PartyTaxScheme"]["TaxScheme"]["TaxTypeCode"] = ts["TaxTypeCode"]
-                        elif key in tax_scheme:
-                            OrderInformation["Party"]["PartyTaxScheme"][key] = tax_scheme[key]
-                
-                # Contact
+                            ts = tax_scheme.get("TaxScheme", {})
+                            OrderInformation["Party"]["PartyTaxScheme"]["TaxScheme"]["ID"] = ts.get("ID", "")
+                            OrderInformation["Party"]["PartyTaxScheme"]["TaxScheme"]["TaxTypeCode"] = ts.get("TaxTypeCode", "")
+                        else:
+                            OrderInformation["Party"]["PartyTaxScheme"][key] = tax_scheme.get(key, "")
+
                 if "Contact" in party:
                     contact = party["Contact"]
-                    for key in OrderInformation["Party"]["Contact"]:
-                        if key in contact:
-                            OrderInformation["Party"]["Contact"][key] = contact[key]
-        
+                    if contact:  # Added check to avoid errors
+                        for key in OrderInformation["Party"]["Contact"]:
+                            OrderInformation["Party"]["Contact"][key] = contact.get(key, "")
+
     except Exception as e:
         print(f"Database connection error: {e}")
     finally:
-        if client:
-            client.close()
-            
+        if mongoClient:
+            mongoClient.close()
+
     return OrderInformation
-=======
-
-
-import sys
-import os
-
-
-sys.path.append(os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__), "..", ".."
-    )
-))
->>>>>>> origin/main
