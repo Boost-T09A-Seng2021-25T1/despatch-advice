@@ -15,14 +15,21 @@ load_dotenv(
 )
 
 
-uri = next(filter(None, [os.getenv("MDB_URI") or os.getenv(
-            "MONGO_URI", "mongodb://localhost:27017/testdb")]))
+uri = next(
+    filter(
+        None,
+        [
+            os.getenv("MDB_URI")
+            or os.getenv("MONGO_URI", "mongodb://localhost:27017/testdb")
+        ],
+    )
+)
 
 
 # Connection test on startup
 async def connectToMongo(db):
     try:
-        await db.admin.command('ping')
+        await db.admin.command("ping")
         print("Successfully connected to MongoDB!")
 
     except Exception as error:
@@ -42,7 +49,7 @@ async def dbConnect():
 
     # name of the collection inside the mongodb
     db = client["ubl_docs"]
-    
+
     # Ensure the client is properly closed when done
     try:
         return client, db
@@ -108,15 +115,16 @@ async def deleteOrder(orderUUID, db: AsyncIOMotorCollection):
 async def clearDb(mongoDb: AsyncIOMotorClient):
     await mongoDb.orders.delete_many({})
 
+
 async def updateDocument(document_id, update_data, db):
     """
     Update a document in the database
-    
+
     Args:
         document_id (str): ID of the document to update
         update_data (dict): Data to update
         db: Database connection
-    
+
     Returns:
         bool: True if updated successfully, False otherwise
     """
@@ -124,31 +132,30 @@ async def updateDocument(document_id, update_data, db):
         # Try to update in orders collection first
         if document_id.startswith("ORD-"):
             result = await db.orders.update_one(
-                {"OrderID": document_id},
-                {"$set": update_data}
+                {"OrderID": document_id}, {"$set": update_data}
             )
         # Otherwise try in despatches collection
         else:
             result = await db.despatches.update_one(
-                {"DespatchID": document_id},
-                {"$set": update_data}
+                {"DespatchID": document_id}, {"$set": update_data}
             )
-        
+
         # Check if the update was successful
         return result.modified_count > 0
-    
+
     except Exception as e:
         print(f"Error updating document: {str(e)}")
         return False
 
+
 async def deleteDocument(document_id, db):
     """
     Delete a document from the database
-    
+
     Args:
         document_id (str): ID of the document to delete
         db: Database connection
-    
+
     Returns:
         bool: True if deleted successfully, False otherwise
     """
@@ -158,22 +165,25 @@ async def deleteDocument(document_id, db):
             result = await db.orders.delete_one({"OrderID": document_id})
         # Otherwise try in despatches collection
         else:
-            result = await db.despatches.delete_one({"DespatchID": document_id})
-        
+            result = await db.despatches.delete_one({"DespatchID":
+                                                     document_id})
+
         # Check if the deletion was successful
         return result.deleted_count > 0
-    
+
     except Exception as e:
         print(f"Error deleting document: {str(e)}")
         return False
 
+
 # Only run this if called directly
 if __name__ == "__main__":
+
     async def main():
         client, db = await dbConnect()
         try:
             await connectToMongo(db)
         finally:
             client.close()
-            
+
     asyncio.run(main())

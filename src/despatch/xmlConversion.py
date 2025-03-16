@@ -4,113 +4,121 @@
 # ================================================
 
 from lxml import etree
-import json
-from src.utils.constants import cacSchema, cbcSchema, despatchSchema
+from src.utils.constants import cacSchema, cbcSchema
+
 
 def xml_to_json(xml_string):
     """
     Convert XML string to JSON object
-    
+
     Args:
         xml_string (str): XML document as a string
-    
+
     Returns:
         dict: JSON representation of the XML document
     """
     if not xml_string:
         raise ValueError("Empty or null XML input")
-        
+
     try:
         # Parse XML
-        root = etree.fromstring(xml_string.encode('utf-8') if isinstance(xml_string, str) else xml_string)
-        
+        root = etree.fromstring(
+            xml_string.encode("utf-8")
+            if isinstance(xml_string, str)
+            else xml_string
+        )
+
         # Define namespaces for XPath
-        namespaces = {
-            'cbc': cbcSchema,
-            'cac': cacSchema
-        }
-        
+        namespaces = {"cbc": cbcSchema, "cac": cacSchema}
+
         # Extract key fields
         result = {}
-        
+
         # Basic fields
-        id_elem = root.find('.//cbc:ID', namespaces)
+        id_elem = root.find(".//cbc:ID", namespaces)
         if id_elem is not None:
-            result['ID'] = id_elem.text
-        
-        uuid_elem = root.find('.//cbc:UUID', namespaces)
+            result["ID"] = id_elem.text
+
+        uuid_elem = root.find(".//cbc:UUID", namespaces)
         if uuid_elem is not None:
-            result['UUID'] = uuid_elem.text
-        
-        issue_date_elem = root.find('.//cbc:IssueDate', namespaces)
+            result["UUID"] = uuid_elem.text
+
+        issue_date_elem = root.find(".//cbc:IssueDate", namespaces)
         if issue_date_elem is not None:
-            result['IssueDate'] = issue_date_elem.text
-        
+            result["IssueDate"] = issue_date_elem.text
+
         # CopyIndicator (boolean)
-        copy_indicator_elem = root.find('.//cbc:CopyIndicator', namespaces)
+        copy_indicator_elem = root.find(".//cbc:CopyIndicator", namespaces)
         if copy_indicator_elem is not None:
-            result['CopyIndicator'] = copy_indicator_elem.text.lower() == 'true'
-        
+            result["CopyIndicator"] = (
+                copy_indicator_elem.text.lower() == "true"
+            )
+
         # Status code
-        status_code_elem = root.find('.//cbc:DocumentStatusCode', namespaces)
+        status_code_elem = root.find(".//cbc:DocumentStatusCode", namespaces)
         if status_code_elem is not None:
-            result['DocumentStatusCode'] = status_code_elem.text
-        
+            result["DocumentStatusCode"] = status_code_elem.text
+
         # Note
-        note_elem = root.find('.//cbc:Note', namespaces)
+        note_elem = root.find(".//cbc:Note", namespaces)
         if note_elem is not None:
-            result['Note'] = note_elem.text
-        
+            result["Note"] = note_elem.text
+
         # Extract customer ID (assuming it's in BuyerReference)
-        buyer_ref_elem = root.find('.//cbc:BuyerReference', namespaces)
+        buyer_ref_elem = root.find(".//cbc:BuyerReference", namespaces)
         if buyer_ref_elem is not None:
-            result['CustomerID'] = buyer_ref_elem.text
-        
+            result["CustomerID"] = buyer_ref_elem.text
+
         # Extract items
         items = []
-        line_items = root.findall('.//cac:OrderLine/cac:LineItem', namespaces)
-        
+        line_items = root.findall(".//cac:OrderLine/cac:LineItem", namespaces)
+
         for i, line_item in enumerate(line_items):
             item = {}
-            
+
             # Extract item ID
-            item_id_elem = line_item.find('.//cac:Item/cac:SellersItemIdentification/cbc:ID', namespaces)
+            item_id_path = ".//cac:Item/cac:SellersItemIdentification/cbc:ID"
+            item_id_elem = line_item.find(item_id_path, namespaces)
             if item_id_elem is not None:
-                item['item_id'] = item_id_elem.text
-            
+                item["item_id"] = item_id_elem.text
+
             # Extract quantity
-            quantity_elem = line_item.find('.//cbc:Quantity', namespaces)
+            quantity_elem = line_item.find(".//cbc:Quantity", namespaces)
             if quantity_elem is not None:
                 try:
-                    item['quantity'] = float(quantity_elem.text)
+                    item["quantity"] = float(quantity_elem.text)
                 except ValueError:
-                    item['quantity'] = 0
-            
+                    item["quantity"] = 0
+
             # Extract price
-            price_elem = line_item.find('.//cac:Price/cbc:PriceAmount', namespaces)
+            price_elem = line_item.find(
+                ".//cac:Price/cbc:PriceAmount",
+                namespaces
+            )
             if price_elem is not None:
                 try:
-                    item['price'] = float(price_elem.text)
+                    item["price"] = float(price_elem.text)
                 except ValueError:
-                    item['price'] = 0
-            
+                    item["price"] = 0
+
             items.append(item)
-        
-        result['Items'] = items
-        
+
+        result["Items"] = items
+
         return result
-        
+
     except Exception as e:
         raise ValueError(f"Failed to convert XML to JSON: {str(e)}")
+
 
 def json_to_xml(json_obj, document_type):
     """
     Convert JSON object to XML string
-    
+
     Args:
         json_obj (dict): JSON object to convert
         document_type (str): Type of document (Order or DespatchAdvice)
-    
+
     Returns:
         str: XML representation of the JSON object
     """
@@ -120,14 +128,15 @@ def json_to_xml(json_obj, document_type):
         return json_to_xml_order(json_obj)
     else:
         raise ValueError(f"Unsupported document type: {document_type}")
-    
+
+
 def json_to_xml_order(json_obj):
     """
     Convert JSON object to Order XML string
-    
+
     Args:
         json_obj (dict): JSON object to convert
-        
+
     Returns:
         str: XML representation of the Order
     """
@@ -140,12 +149,14 @@ def json_to_xml_order(json_obj):
     <cbc:UUID>{json_obj.get('UUID', '')}</cbc:UUID>
     <cbc:IssueDate>{json_obj.get('IssueDate', '')}</cbc:IssueDate>
     <cbc:BuyerReference>{json_obj.get('CustomerID', '')}</cbc:BuyerReference>
-    <cbc:CopyIndicator>{str(json_obj.get('CopyIndicator', False)).lower()}</cbc:CopyIndicator>
-    <cbc:DocumentStatusCode>{json_obj.get('DocumentStatusCode', 'NoStatus')}</cbc:DocumentStatusCode>
+    <cbc:CopyIndicator>{str(json_obj.get('CopyIndicator', False)).
+                        lower()}</cbc:CopyIndicator>
+    <cbc:DocumentStatusCode>{json_obj.get('DocumentStatusCode',
+                                          'NoStatus')}</cbc:DocumentStatusCode>
     <cbc:Note>{json_obj.get('Note', '')}</cbc:Note>"""
 
     # Add OrderLine sections for each item
-    items = json_obj.get('Items', [])
+    items = json_obj.get("Items", [])
     for item in items:
         xml += f"""
     <cac:OrderLine>
@@ -167,34 +178,42 @@ def json_to_xml_order(json_obj):
 </Order>"""
 
     return xml
-    
+
+
 def json_to_xml_despatch_advice(json_obj):
     """
     Convert JSON object to DespatchAdvice XML string
-    
+
     Args:
         json_obj (dict): JSON object to convert
-        
+
     Returns:
         str: XML representation of the DespatchAdvice
     """
     order_reference = json_obj.get("OrderReference", {})
     supplier_party = json_obj.get("DespatchSupplierParty", {})
     customer_party = json_obj.get("DeliveryCustomerParty", {})
-    
+
     # Basic template with header information
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<DespatchAdvice xmlns="urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2"
+<DespatchAdvice
+    xmlns="urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2"
                 xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
                 xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2">
     <cbc:UBLVersionID>2.0</cbc:UBLVersionID>
-    <cbc:CustomizationID>urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2.0:sbs-1.0-draft</cbc:CustomizationID>
-    <cbc:ProfileID>bpid:urn:oasis:names:draft:bpss:ubl-2-sbs-despatch-advice-notification-draft</cbc:ProfileID>
+    <cbc:CustomizationID>
+        urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2.0:sbs-1.0-draft
+    </cbc:CustomizationID>
+    <cbc:ProfileID>
+        bpid:urn:oasis:names:draft:bpss:ubl-2-sbs-despatch-advice-notification-draft
+    </cbc:ProfileID>
     <cbc:ID>{json_obj.get('ID', '')}</cbc:ID>
-    <cbc:CopyIndicator>{str(json_obj.get('CopyIndicator', False)).lower()}</cbc:CopyIndicator>
+    <cbc:CopyIndicator>{str(json_obj.get('CopyIndicator', False)).
+                        lower()}</cbc:CopyIndicator>
     <cbc:UUID>{json_obj.get('UUID', '')}</cbc:UUID>
     <cbc:IssueDate>{json_obj.get('IssueDate', '')}</cbc:IssueDate>
-    <cbc:DocumentStatusCode>{json_obj.get('DocumentStatusCode', 'NoStatus')}</cbc:DocumentStatusCode>
+    <cbc:DocumentStatusCode>{json_obj.get('DocumentStatusCode',
+                                          'NoStatus')}</cbc:DocumentStatusCode>
     <cbc:DespatchAdviceTypeCode>delivery</cbc:DespatchAdviceTypeCode>
     <cbc:Note>{json_obj.get('Note', '')}</cbc:Note>"""
 
@@ -213,41 +232,66 @@ def json_to_xml_despatch_advice(json_obj):
         sp_postal = sp_party.get("PostalAddress", {})
         sp_tax = sp_party.get("PartyTaxScheme", {})
         sp_contact = sp_party.get("Contact", {})
-        
+
         xml += f"""
     <cac:DespatchSupplierParty>
-        <cbc:CustomerAssignedAccountID>{supplier_party.get('CustomerAssignedAccountID', '')}</cbc:CustomerAssignedAccountID>
-        <cbc:SupplierAssignedAccountID>{supplier_party.get('SupplierAssignedAccountID', '')}</cbc:SupplierAssignedAccountID>
+        <cbc:CustomerAssignedAccountID>
+            {supplier_party.get('CustomerAssignedAccountID', '')}
+        </cbc:CustomerAssignedAccountID>
+        <cbc:SupplierAssignedAccountID>
+            {supplier_party.get('SupplierAssignedAccountID', '')}
+        </cbc:SupplierAssignedAccountID>
         <cac:Party>
             <cbc:PartyName>{sp_party.get('PartyName', '')}</cbc:PartyName>
             <cac:PostalAddress>
-                <cbc:StreetName>{sp_postal.get('StreetName', '')}</cbc:StreetName>
-                <cbc:BuildingName>{sp_postal.get('BuildingName', '')}</cbc:BuildingName>
-                <cbc:BuildingNumber>{sp_postal.get('BuildingNumber', '')}</cbc:BuildingNumber>
+                <cbc:StreetName>{sp_postal.
+                                 get('StreetName', '')}</cbc:StreetName>
+                <cbc:BuildingName>{sp_postal.get('BuildingName',
+                                                 '')}</cbc:BuildingName>
+                <cbc:BuildingNumber>
+                    {sp_postal.get('BuildingNumber', '')}
+                </cbc:BuildingNumber>
                 <cbc:CityName>{sp_postal.get('CityName', '')}</cbc:CityName>
-                <cbc:PostalZone>{sp_postal.get('PostalZone', '')}</cbc:PostalZone>
-                <cbc:CountrySubentity>{sp_postal.get('CountrySubentity', '')}</cbc:CountrySubentity>
+                <cbc:PostalZone>{sp_postal.get('PostalZone',
+                                               '')}</cbc:PostalZone>
+                <cbc:CountrySubentity>
+                    {sp_postal.get('CountrySubentity', '')}
+                </cbc:CountrySubentity>
                 <cac:AddressLine>
-                    <cbc:Line>{sp_postal.get('AddressLine', {}).get('Line', '')}</cbc:Line>
+                    <cbc:Line>{sp_postal.get('AddressLine', {}).
+                               get('Line', '')}</cbc:Line>
                 </cac:AddressLine>
                 <cac:Country>
-                    <cbc:IdentificationCode>{sp_postal.get('Country', {}).get('IdentificationCode', '')}</cbc:IdentificationCode>
+                    <cbc:IdentificationCode>
+                        {sp_postal.get('Country', {}).
+                         get('IdentificationCode', '')}
+                    </cbc:IdentificationCode>
                 </cac:Country>
             </cac:PostalAddress>
             <cac:PartyTaxScheme>
-                <cbc:RegistrationName>{sp_tax.get('RegistrationName', '')}</cbc:RegistrationName>
+                <cbc:RegistrationName>
+                    {sp_tax.get('RegistrationName', '')}
+                </cbc:RegistrationName>
                 <cbc:CompanyID>{sp_tax.get('CompanyID', '')}</cbc:CompanyID>
-                <cbc:ExemptionReason>{sp_tax.get('ExemptionReason', '')}</cbc:ExemptionReason>
+                <cbc:ExemptionReason>
+                    {sp_tax.get('ExemptionReason', '')}
+                </cbc:ExemptionReason>
                 <cac:TaxScheme>
-                    <cbc:ID>{sp_tax.get('TaxScheme', {}).get('ID', '')}</cbc:ID>
-                    <cbc:TaxTypeCode>{sp_tax.get('TaxScheme', {}).get('TaxTypeCode', '')}</cbc:TaxTypeCode>
+                    <cbc:ID>{sp_tax.get('TaxScheme',
+                                        {}).get('ID', '')}</cbc:ID>
+                    <cbc:TaxTypeCode>
+                        {sp_tax.get('TaxScheme', {}).get('TaxTypeCode', '')}
+                    </cbc:TaxTypeCode>
                 </cac:TaxScheme>
             </cac:PartyTaxScheme>
             <cac:Contact>
                 <cbc:Name>{sp_contact.get('Name', '')}</cbc:Name>
-                <cbc:Telephone>{sp_contact.get('Telephone', '')}</cbc:Telephone>
+                <cbc:Telephone>{sp_contact.get('Telephone',
+                                               '')}</cbc:Telephone>
                 <cbc:Telefax>{sp_contact.get('Telefax', '')}</cbc:Telefax>
-                <cbc:ElectronicMail>{sp_contact.get('ElectronicMail', '')}</cbc:ElectronicMail>
+                <cbc:ElectronicMail>
+                    {sp_contact.get('ElectronicMail', '')}
+                </cbc:ElectronicMail>
             </cac:Contact>
         </cac:Party>
     </cac:DespatchSupplierParty>"""
@@ -258,41 +302,66 @@ def json_to_xml_despatch_advice(json_obj):
         cp_postal = cp_party.get("PostalAddress", {})
         cp_tax = cp_party.get("PartyTaxScheme", {})
         cp_contact = cp_party.get("Contact", {})
-        
+
         xml += f"""
     <cac:DeliveryCustomerParty>
-        <cbc:CustomerAssignedAccountID>{customer_party.get('CustomerAssignedAccountID', '')}</cbc:CustomerAssignedAccountID>
-        <cbc:SupplierAssignedAccountID>{customer_party.get('SupplierAssignedAccountID', '')}</cbc:SupplierAssignedAccountID>
+        <cbc:CustomerAssignedAccountID>
+            {customer_party.get('CustomerAssignedAccountID', '')}
+        </cbc:CustomerAssignedAccountID>
+        <cbc:SupplierAssignedAccountID>
+            {customer_party.get('SupplierAssignedAccountID', '')}
+        </cbc:SupplierAssignedAccountID>
         <cac:Party>
             <cbc:PartyName>{cp_party.get('PartyName', '')}</cbc:PartyName>
             <cac:PostalAddress>
-                <cbc:StreetName>{cp_postal.get('StreetName', '')}</cbc:StreetName>
-                <cbc:BuildingName>{cp_postal.get('BuildingName', '')}</cbc:BuildingName>
-                <cbc:BuildingNumber>{cp_postal.get('BuildingNumber', '')}</cbc:BuildingNumber>
+                <cbc:StreetName>{cp_postal.get('StreetName',
+                                               '')}</cbc:StreetName>
+                <cbc:BuildingName>{cp_postal.
+                                   get('BuildingName', '')}</cbc:BuildingName>
+                <cbc:BuildingNumber>
+                    {cp_postal.get('BuildingNumber', '')}
+                </cbc:BuildingNumber>
                 <cbc:CityName>{cp_postal.get('CityName', '')}</cbc:CityName>
-                <cbc:PostalZone>{cp_postal.get('PostalZone', '')}</cbc:PostalZone>
-                <cbc:CountrySubentity>{cp_postal.get('CountrySubentity', '')}</cbc:CountrySubentity>
+                <cbc:PostalZone>{cp_postal.
+                                 get('PostalZone', '')}</cbc:PostalZone>
+                <cbc:CountrySubentity>
+                    {cp_postal.get('CountrySubentity', '')}
+                </cbc:CountrySubentity>
                 <cac:AddressLine>
-                    <cbc:Line>{cp_postal.get('AddressLine', {}).get('Line', '')}</cbc:Line>
+                    <cbc:Line>{cp_postal.get('AddressLine', {}).
+                               get('Line', '')}</cbc:Line>
                 </cac:AddressLine>
                 <cac:Country>
-                    <cbc:IdentificationCode>{cp_postal.get('Country', {}).get('IdentificationCode', '')}</cbc:IdentificationCode>
+                    <cbc:IdentificationCode>
+                        {cp_postal.get('Country', {}).
+                         get('IdentificationCode', '')}
+                    </cbc:IdentificationCode>
                 </cac:Country>
             </cac:PostalAddress>
             <cac:PartyTaxScheme>
-                <cbc:RegistrationName>{cp_tax.get('RegistrationName', '')}</cbc:RegistrationName>
+                <cbc:RegistrationName>
+                    {cp_tax.get('RegistrationName', '')}
+                </cbc:RegistrationName>
                 <cbc:CompanyID>{cp_tax.get('CompanyID', '')}</cbc:CompanyID>
-                <cbc:ExemptionReason>{cp_tax.get('ExemptionReason', '')}</cbc:ExemptionReason>
+                <cbc:ExemptionReason>
+                    {cp_tax.get('ExemptionReason', '')}
+                </cbc:ExemptionReason>
                 <cac:TaxScheme>
-                    <cbc:ID>{cp_tax.get('TaxScheme', {}).get('ID', '')}</cbc:ID>
-                    <cbc:TaxTypeCode>{cp_tax.get('TaxScheme', {}).get('TaxTypeCode', '')}</cbc:TaxTypeCode>
+                    <cbc:ID>{cp_tax.get('TaxScheme', {}).
+                             get('ID', '')}</cbc:ID>
+                    <cbc:TaxTypeCode>
+                        {cp_tax.get('TaxScheme', {}).get('TaxTypeCode', '')}
+                    </cbc:TaxTypeCode>
                 </cac:TaxScheme>
             </cac:PartyTaxScheme>
             <cac:Contact>
                 <cbc:Name>{cp_contact.get('Name', '')}</cbc:Name>
-                <cbc:Telephone>{cp_contact.get('Telephone', '')}</cbc:Telephone>
+                <cbc:Telephone>{cp_contact.get('Telephone',
+                                               '')}</cbc:Telephone>
                 <cbc:Telefax>{cp_contact.get('Telefax', '')}</cbc:Telefax>
-                <cbc:ElectronicMail>{cp_contact.get('ElectronicMail', '')}</cbc:ElectronicMail>
+                <cbc:ElectronicMail>
+                    {cp_contact.get('ElectronicMail', '')}
+                </cbc:ElectronicMail>
             </cac:Contact>
         </cac:Party>
     </cac:DeliveryCustomerParty>"""
@@ -304,8 +373,14 @@ def json_to_xml_despatch_advice(json_obj):
     <cac:Shipment>
         <cbc:ID>{shipment.get('ID', '')}</cbc:ID>
         <cbc:HandlingCode>{shipment.get('HandlingCode', '')}</cbc:HandlingCode>
-        <cbc:GrossWeightMeasure unitCode="{shipment.get('GrossWeightMeasure', {}).get('unitCode', '')}">{shipment.get('GrossWeightMeasure', {}).get('value', '')}</cbc:GrossWeightMeasure>
-        <cbc:TotalTransportHandlingUnitQuantity>{shipment.get('TotalTransportHandlingUnitQuantity', '')}</cbc:TotalTransportHandlingUnitQuantity>
+        <cbc:GrossWeightMeasure unitCode="{
+            shipment.get('GrossWeightMeasure', {}).get('unitCode', '')
+        }">{
+            shipment.get('GrossWeightMeasure', {}).get('value', '')
+        }</cbc:GrossWeightMeasure>
+        <cbc:TotalTransportHandlingUnitQuantity>
+            {shipment.get('TotalTransportHandlingUnitQuantity', '')}
+        </cbc:TotalTransportHandlingUnitQuantity>
     </cac:Shipment>"""
 
     # Add DespatchLine sections if available
@@ -315,14 +390,21 @@ def json_to_xml_despatch_advice(json_obj):
         xml += f"""
     <cac:DespatchLine>
         <cbc:ID>{line.get('ID', '')}</cbc:ID>
-        <cbc:DeliveredQuantity unitCode="{line.get('DeliveredQuantity', {}).get('unitCode', '')}">{line.get('DeliveredQuantity', {}).get('value', '')}</cbc:DeliveredQuantity>
+        <cbc:DeliveredQuantity unitCode="{
+            line.get('DeliveredQuantity', {}).get('unitCode', '')
+        }">{
+            line.get('DeliveredQuantity', {}).get('value', '')
+        }</cbc:DeliveredQuantity>
         <cac:OrderLineReference>
-            <cbc:LineID>{line.get('OrderLineReference', {}).get('LineID', '')}</cbc:LineID>
+            <cbc:LineID>{line.get('OrderLineReference', {}).
+                        get('LineID', '')}</cbc:LineID>
         </cac:OrderLineReference>
         <cac:Item>
             <cbc:Name>{item.get('Name', '')}</cbc:Name>
             <cac:SellersItemIdentification>
-                <cbc:ID>{item.get('SellersItemIdentification', {}).get('ID', '')}</cbc:ID>
+                <cbc:ID>
+                    {item.get('SellersItemIdentification', {}).get('ID', '')}
+                </cbc:ID>
             </cac:SellersItemIdentification>
         </cac:Item>
     </cac:DespatchLine>"""

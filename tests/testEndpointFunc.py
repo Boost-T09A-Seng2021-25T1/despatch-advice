@@ -1,14 +1,13 @@
 from src.apiEndpoint import endpointFunc
 import unittest
 import os
-import asyncio
 
-os.path.abspath(os.path.join(
-    os.path.dirname(__file__), ".."))
+os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
-class testFirstApiEndpoint(unittest.IsolatedAsyncioTestCase):  # Change to IsolatedAsyncioTestCase
-
+class testFirstApiEndpoint(
+    unittest.IsolatedAsyncioTestCase
+):  # Change to IsolatedAsyncioTestCase
     async def testForNone(self):  # Add async here
         invalidArgs = [
             (None, {}, {}, {}),
@@ -18,7 +17,7 @@ class testFirstApiEndpoint(unittest.IsolatedAsyncioTestCase):  # Change to Isola
             (123, {}, {}, {}),
             ("", 123, {}, {}),
             ("", {}, 123, {}),
-            ("", {}, {}, 123)
+            ("", {}, {}, 123),
         ]
 
         for arguments in invalidArgs:
@@ -26,5 +25,5 @@ class testFirstApiEndpoint(unittest.IsolatedAsyncioTestCase):  # Change to Isola
                 await endpointFunc(*arguments)  # Add await here
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

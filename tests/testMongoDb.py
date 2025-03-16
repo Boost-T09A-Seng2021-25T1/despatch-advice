@@ -22,12 +22,13 @@ class TestOrder(unittest.IsolatedAsyncioTestCase):
             "IssueDate": "2005-06-20",
             "DocumentStatusCode": "NoStatus",
             "DespatchAdviceTypeCode": "delivery",
-            "Note": "sample"
+            "Note": "sample",
         }
 
     async def asyncTearDown(self):
         await clearDb(self.db)
         self.client.close()
+
     # ============================================
     # ============================================
 
@@ -46,33 +47,27 @@ class TestOrder(unittest.IsolatedAsyncioTestCase):
 
     async def testFetchAndDelete(self):
         await addOrder(self.fakeOrder, self.orders)
-    # tests for correct fetching
+        # tests for correct fetching
         fetchedOrder = await getOrderInfo(self.testUUID, self.orders)
-        self.assertEqual(
-            fetchedOrder["ID"],
-            self.fakeOrder["ID"]
-        )
-        
-    # Test with non-existent ID - should return None or handle error differently
-        result = await getOrderInfo("NON-EXISTENT", self.orders)
-        self.assertIsNone(result)  # Or whatever your current implementation returns
-        
+        self.assertEqual(fetchedOrder["ID"], self.fakeOrder["ID"])
+
+        # Test with non-existent ID -
+        # should return None or handle error differently
+        result = await getOrderInfo("NON-EXISTENT",
+                                    self.orders)
+        self.assertIsNone(result)
+        # Or whatever your current implementation returns
+
         self.assertTrue(await deleteOrder(self.testUUID, self.orders))
-    
+
     async def testDbConnect(self):
         client, db = await dbConnect()
 
-        self.assertIsInstance(
-            client,
-            motor.motor_asyncio.AsyncIOMotorClient
-        )
+        self.assertIsInstance(client, motor.motor_asyncio.AsyncIOMotorClient)
 
-        self.assertIsInstance(
-            db,
-            motor.motor_asyncio.AsyncIOMotorDatabase
-        )
+        self.assertIsInstance(db, motor.motor_asyncio.AsyncIOMotorDatabase)
         client.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
