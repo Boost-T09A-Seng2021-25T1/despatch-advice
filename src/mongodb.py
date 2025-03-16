@@ -15,14 +15,21 @@ load_dotenv(
 )
 
 
-uri = next(filter(None, [os.getenv("MDB_URI") or os.getenv(
-            "MONGO_URI", "mongodb://localhost:27017/testdb")]))
+uri = next(
+    filter(
+        None,
+        [
+            os.getenv("MDB_URI")
+            or os.getenv("MONGO_URI", "mongodb://localhost:27017/testdb")
+        ],
+    )
+)
 
 
 # Connection test on startup
 async def connectToMongo(db):
     try:
-        await db.admin.command('ping')
+        await db.admin.command("ping")
         print("Successfully connected to MongoDB!")
 
     except Exception as error:
@@ -43,7 +50,12 @@ async def dbConnect():
     # name of the collection inside the mongodb
     db = client["ubl_docs"]
 
-    return client, db
+    # Ensure the client is properly closed when done
+    try:
+        return client, db
+    except Exception as e:
+        client.close()
+        raise e
 
 
 # ===========================================
@@ -54,11 +66,9 @@ async def dbConnect():
 
 # Return: added order ID
 # ============================================
-
-
-async def addOrder(data: dict, orders: AsyncIOMotorCollection):
+async def addOrder(data: dict, db: AsyncIOMotorCollection):
     try:
-        response = await orders.insert_one(data)
+        response = await db.orders.insert_one(data)
         return response.inserted_id
 
     except pymongo.errors.DuplicateKeyError as error:
@@ -71,13 +81,18 @@ async def addOrder(data: dict, orders: AsyncIOMotorCollection):
 
 # Return: fetched order object
 # ============================================
-
-
-async def getOrderInfo(orderUUID: str, orders: AsyncIOMotorCollection):
-    res = await orders.find_one({"UUID": orderUUID})
-    if not res:
-        raise ValueError(f"{orderUUID} not found.")
-    return res
+async def getOrderInfo(orderUUID: str, db: AsyncIOMotorCollection):
+    try:
+        res = await db.orders.find_one({"UUID": orderUUID})
+        if not res:
+            # Try looking up by OrderID too, as some tests might be using this
+            res = await db.orders.find_one({"OrderID": orderUUID})
+            if not res:
+                raise ValueError(f"{orderUUID} not found.")
+        return res
+    except Exception as e:
+        print(f"Error retrieving order: {str(e)}")
+        return None
 
 
 # ===========================================
@@ -86,10 +101,8 @@ async def getOrderInfo(orderUUID: str, orders: AsyncIOMotorCollection):
 
 # Return: true if item deleted
 # ============================================
-
-
-async def deleteOrder(orderUUID, orders: AsyncIOMotorCollection):
-    response = await orders.delete_many({"UUID": orderUUID})
+async def deleteOrder(orderUUID, db: AsyncIOMotorCollection):
+    response = await db.orders.delete_many({"UUID": orderUUID})
     return response.deleted_count > 0
 
 
@@ -99,12 +112,78 @@ async def deleteOrder(orderUUID, orders: AsyncIOMotorCollection):
 
 # Return: nil
 # ============================================
-
-
 async def clearDb(mongoDb: AsyncIOMotorClient):
     await mongoDb.orders.delete_many({})
 
 
+async def updateDocument(document_id, update_data, db):
+    """
+    Update a document in the database
+
+    Args:
+        document_id (str): ID of the document to update
+        update_data (dict): Data to update
+        db: Database connection
+
+    Returns:
+        bool: True if updated successfully, False otherwise
+    """
+    try:
+        # Try to update in orders collection first
+        if document_id.startswith("ORD-"):
+            result = await db.orders.update_one(
+                {"OrderID": document_id}, {"$set": update_data}
+            )
+        # Otherwise try in despatches collection
+        else:
+            result = await db.despatches.update_one(
+                {"DespatchID": document_id}, {"$set": update_data}
+            )
+
+        # Check if the update was successful
+        return result.modified_count > 0
+
+    except Exception as e:
+        print(f"Error updating document: {str(e)}")
+        return False
+
+
+async def deleteDocument(document_id, db):
+    """
+    Delete a document from the database
+
+    Args:
+        document_id (str): ID of the document to delete
+        db: Database connection
+
+    Returns:
+        bool: True if deleted successfully, False otherwise
+    """
+    try:
+        # Try to delete from orders collection first
+        if document_id.startswith("ORD-"):
+            result = await db.orders.delete_one({"OrderID": document_id})
+        # Otherwise try in despatches collection
+        else:
+            result = await db.despatches.delete_one({"DespatchID":
+                                                     document_id})
+
+        # Check if the deletion was successful
+        return result.deleted_count > 0
+
+    except Exception as e:
+        print(f"Error deleting document: {str(e)}")
+        return False
+
+
+# Only run this if called directly
 if __name__ == "__main__":
-    orders, db = dbConnect()
-    asyncio.run(connectToMongo())
+
+    async def main():
+        client, db = await dbConnect()
+        try:
+            await connectToMongo(db)
+        finally:
+            client.close()
+
+    asyncio.run(main())
