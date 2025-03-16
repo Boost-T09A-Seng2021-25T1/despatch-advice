@@ -9,6 +9,7 @@ from lxml import etree
 dirPath = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(dirPath)
 
+# Change the imports to match the correct path
 from src.despatch.despatchCreate import (
     addDespatchAdvice,
     getDespatchAdvice,
@@ -17,9 +18,8 @@ from src.despatch.despatchCreate import (
     validate_despatch_advice,
     get_despatch_xml,
     update_despatch_advice,
-    delete_despatch_advice,
+    delete_despatch_advice
 )
-
 
 class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -31,43 +31,49 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
             "SupplierInfo": {
                 "is_seller": True,
                 "name": "Supplier Co.",
-                "contact": "John Smith",
+                "contact": "John Smith"
             },
             "CustomerInfo": {
                 "id": "CUST-001",
-                "details": {"name": "Customer Ltd.", "address": "123 Main St"},
+                "details": {
+                    "name": "Customer Ltd.",
+                    "address": "123 Main St"
+                }
             },
             "CreationDate": "2025-03-16",
             "XMLData": "<DespatchAdvice>...</DespatchAdvice>",
-            "LastModified": "2025-03-16T10:00:00",
+            "LastModified": "2025-03-16T10:00:00"
         }
-
+        
         self.valid_event_body = {
             "order_id": "ORD-12345",
             "supplier": {
                 "is_seller": True,
                 "name": "Supplier Co.",
-                "contact": "John Smith",
+                "contact": "John Smith"
             },
             "customer": {
                 "id": "CUST-001",
-                "details": {"name": "Customer Ltd.", "address": "123 Main St"},
-            },
+                "details": {
+                    "name": "Customer Ltd.",
+                    "address": "123 Main St"
+                }
+            }
         }
-
+        
         self.sample_order = {
             "OrderID": "ORD-12345",
             "UUID": "550e8400-e29b-41d4-a716-446655440000",
             "CustomerID": "CUST-001",
             "Items": [
                 {"item_id": "ITEM-001", "quantity": 5, "price": 10.5},
-                {"item_id": "ITEM-002", "quantity": 3, "price": 15.75},
+                {"item_id": "ITEM-002", "quantity": 3, "price": 15.75}
             ],
             "Status": "Created",
             "CreationDate": "2025-03-15T10:00:00",
-            "LastModified": "2025-03-15T10:00:00",
+            "LastModified": "2025-03-15T10:00:00"
         }
-
+        
         self.sample_xml = """<?xml version="1.0" encoding="UTF-8"?>
 <DespatchAdvice xmlns="urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2"
         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
@@ -85,222 +91,202 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
 </DespatchAdvice>"""
 
         self.valid_despatch_data["XMLData"] = self.sample_xml
-
+        
         self.client = MagicMock()
         self.db = MagicMock()
 
     async def asyncTearDown(self):
-        if hasattr(self, "client") and hasattr(self.client, "close"):
+        if hasattr(self, 'client') and hasattr(self.client, 'close'):
             self.client.close()
 
-    @patch("src.despatchCreate.dbConnect")
-    @patch("src.despatchCreate.addOrder")
+    # Fixed patch path
+    @patch('src.despatch.despatchCreate.dbConnect')
+    @patch('src.despatch.despatchCreate.addOrder')
     async def test_add_despatch_advice_success(self, mock_add_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         mock_add_order.return_value = "inserted_id"
-
-        result = addDespatchAdvice(self.valid_despatch_data)
-
+        
+        result = await addDespatchAdvice(self.valid_despatch_data)
+        
         self.assertEqual(result, "inserted_id")
         mock_db_connect.assert_called_once()
         mock_add_order.assert_called_once_with(self.valid_despatch_data, self.db)
         self.client.close.assert_called_once()
 
-    @patch("src.despatchCreate.dbConnect")
-    @patch("src.despatchCreate.addOrder")
+    # Fixed patch path
+    @patch('src.despatch.despatchCreate.dbConnect')
+    @patch('src.despatch.despatchCreate.addOrder')
     async def test_add_despatch_advice_failure(self, mock_add_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         mock_add_order.side_effect = Exception("Database error")
-
-        result = addDespatchAdvice(self.valid_despatch_data)
-
+        
+        result = await addDespatchAdvice(self.valid_despatch_data)
+        
         self.assertIsNone(result)
         mock_db_connect.assert_called_once()
         mock_add_order.assert_called_once()
         self.client.close.assert_called_once()
 
-    @patch("src.despatchCreate.dbConnect")
-    @patch("src.despatchCreate.getOrderInfo")
-    async def test_get_despatch_advice_success(
-        self, mock_get_order_info, mock_db_connect
-    ):
+    # Fixed patch path
+    @patch('src.despatch.despatchCreate.dbConnect')
+    @patch('src.despatch.despatchCreate.getOrderInfo')
+    async def test_get_despatch_advice_success(self, mock_get_order_info, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_order_info.return_value = self.valid_despatch_data
-
-        result = getDespatchAdvice("D-12345678")
-
+        
+        result = await getDespatchAdvice("D-12345678")
+        
         self.assertEqual(result, self.valid_despatch_data)
         mock_db_connect.assert_called_once()
         mock_get_order_info.assert_called_once_with("D-12345678", self.db)
         self.client.close.assert_called_once()
 
-    @patch("src.despatchCreate.dbConnect")
-    @patch("src.despatchCreate.getOrderInfo")
-    async def test_get_despatch_advice_failure(
-        self, mock_get_order_info, mock_db_connect
-    ):
+    # Continue with other test methods and fix their patch paths similarly...
+    # All methods should use 'src.despatch.despatchCreate' instead of 'src.despatchCreate'
+
+    @patch('src.despatch.despatchCreate.dbConnect')
+    @patch('src.despatch.despatchCreate.getOrderInfo')
+    async def test_get_despatch_advice_failure(self, mock_get_order_info, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_order_info.side_effect = Exception("Database error")
-
-        result = getDespatchAdvice("D-12345678")
-
+        
+        result = await getDespatchAdvice("D-12345678")
+        
         self.assertIsNone(result)
         mock_db_connect.assert_called_once()
         mock_get_order_info.assert_called_once()
         self.client.close.assert_called_once()
 
-    @patch("uuid.uuid4")
+    @patch('uuid.uuid4')
     async def test_generate_initial_xml(self, mock_uuid):
         mock_uuid.return_value = "660e8400-e29b-41d4-a716-446655440001"
-
+        
         result = generate_initial_xml("D-12345678", "2025-03-16")
-
+        
         self.assertIsInstance(result, str)
-
+        
         try:
-            root = etree.fromstring(result.encode("utf-8"))
+            root = etree.fromstring(result.encode('utf-8'))
             self.assertIsNotNone(root)
         except Exception as e:
             self.fail(f"Failed to parse XML: {str(e)}")
+        
+        self.assertIn('<cbc:ID>D-12345678</cbc:ID>', result)
+        self.assertIn('<cbc:UUID>660e8400-e29b-41d4-a716-446655440001</cbc:UUID>', result)
+        self.assertIn('<cbc:IssueDate>2025-03-16</cbc:IssueDate>', result)
+        self.assertIn('<cbc:DocumentStatusCode>NoStatus</cbc:DocumentStatusCode>', result)
+        self.assertIn('<cbc:DespatchAdviceTypeCode>delivery</cbc:DespatchAdviceTypeCode>', result)
 
-        self.assertIn("<cbc:ID>D-12345678</cbc:ID>", result)
-        self.assertIn(
-            "<cbc:UUID>660e8400-e29b-41d4-a716-446655440001</cbc:UUID>", result
-        )
-        self.assertIn("<cbc:IssueDate>2025-03-16</cbc:IssueDate>", result)
-        self.assertIn(
-            "<cbc:DocumentStatusCode>NoStatus</cbc:DocumentStatusCode>", result
-        )
-        self.assertIn(
-            "<cbc:DespatchAdviceTypeCode>delivery</cbc:DespatchAdviceTypeCode>", result
-        )
-
-    @patch("src.despatchCreate.dbConnect")
-    @patch("src.despatchCreate.getOrderInfo")
-    @patch("src.despatchCreate.addDespatchAdvice")
-    @patch("uuid.uuid4")
-    @patch("datetime.datetime")
-    async def test_create_despatch_advice_success(
-        self,
-        mock_datetime,
-        mock_uuid,
-        mock_add_despatch,
-        mock_get_order,
-        mock_db_connect,
-    ):
+    @patch('src.despatch.despatchCreate.dbConnect')
+    @patch('src.despatch.despatchCreate.getOrderInfo')
+    @patch('src.despatch.despatchCreate.addDespatchAdvice')
+    @patch('uuid.uuid4')
+    @patch('datetime.datetime')
+    async def test_create_despatch_advice_success(self, mock_datetime, mock_uuid, mock_add_despatch, 
+                                                 mock_get_order, mock_db_connect):
         mock_now = MagicMock()
         mock_now.strftime.return_value = "2025-03-16"
         mock_now.isoformat.return_value = "2025-03-16T10:00:00"
         mock_datetime.now.return_value = mock_now
-
+        
         mock_uuid.return_value.hex = "12345678"
         mock_uuid.return_value = "660e8400-e29b-41d4-a716-446655440001"
-
+        
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_order.return_value = self.sample_order
         mock_add_despatch.return_value = "inserted_id"
-
-        result = create_despatch_advice(self.valid_event_body)
-
+        
+        result = await create_despatch_advice(self.valid_event_body)
+        
         self.assertEqual(result["statusCode"], 200)
         response_body = json.loads(result["body"])
         self.assertIn("despatch_id", response_body)
         self.assertEqual(response_body["status"], "Initiated")
         self.assertIn("xml_link", response_body)
-
+        
         mock_db_connect.assert_called_once()
         mock_get_order.assert_called_once_with("ORD-12345", self.db)
         mock_add_despatch.assert_called_once()
         self.client.close.assert_called_once()
 
-    @patch("src.despatchCreate.dbConnect")
-    @patch("src.despatchCreate.getOrderInfo")
-    async def test_create_despatch_advice_missing_order_id(
-        self, mock_get_order, mock_db_connect
-    ):
+    @patch('src.despatch.despatchCreate.dbConnect')
+    @patch('src.despatch.despatchCreate.getOrderInfo')
+    async def test_create_despatch_advice_missing_order_id(self, mock_get_order, mock_db_connect):
         invalid_event_body = {
             "supplier": self.valid_event_body["supplier"],
-            "customer": self.valid_event_body["customer"],
+            "customer": self.valid_event_body["customer"]
         }
-
-        result = create_despatch_advice(invalid_event_body)
-
+        
+        result = await create_despatch_advice(invalid_event_body)
+        
         self.assertEqual(result["statusCode"], 400)
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertIn("missing order_id", response_body["error"])
-
+        
         mock_db_connect.assert_not_called()
         mock_get_order.assert_not_called()
 
-    @patch("src.despatchCreate.dbConnect")
-    @patch("src.despatchCreate.getOrderInfo")
-    async def test_create_despatch_advice_order_not_found(
-        self, mock_get_order, mock_db_connect
-    ):
+    @patch('src.despatch.despatchCreate.dbConnect')
+    @patch('src.despatch.despatchCreate.getOrderInfo')
+    async def test_create_despatch_advice_order_not_found(self, mock_get_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_order.return_value = None
-
-        result = create_despatch_advice(self.valid_event_body)
-
+        
+        result = await create_despatch_advice(self.valid_event_body)
+        
         self.assertEqual(result["statusCode"], 404)
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertEqual(response_body["error"], "Order does not exist")
-
+        
         mock_db_connect.assert_called_once()
         mock_get_order.assert_called_once_with("ORD-12345", self.db)
         self.client.close.assert_called_once()
 
-    @patch("src.despatchCreate.dbConnect")
-    @patch("src.despatchCreate.getOrderInfo")
-    @patch("src.despatchCreate.addDespatchAdvice")
-    @patch("uuid.uuid4")
-    @patch("datetime.datetime")
-    async def test_create_despatch_advice_db_failure(
-        self,
-        mock_datetime,
-        mock_uuid,
-        mock_add_despatch,
-        mock_get_order,
-        mock_db_connect,
-    ):
+    @patch('src.despatch.despatchCreate.dbConnect')
+    @patch('src.despatch.despatchCreate.getOrderInfo')
+    @patch('src.despatch.despatchCreate.addDespatchAdvice')
+    @patch('uuid.uuid4')
+    @patch('datetime.datetime')
+    async def test_create_despatch_advice_db_failure(self, mock_datetime, mock_uuid, mock_add_despatch, 
+                                                   mock_get_order, mock_db_connect):
         mock_now = MagicMock()
         mock_now.strftime.return_value = "2025-03-16"
         mock_now.isoformat.return_value = "2025-03-16T10:00:00"
         mock_datetime.now.return_value = mock_now
-
+        
         mock_uuid.return_value.hex = "12345678"
         mock_uuid.return_value = "660e8400-e29b-41d4-a716-446655440001"
-
+        
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_order.return_value = self.sample_order
         mock_add_despatch.return_value = None
-
-        result = create_despatch_advice(self.valid_event_body)
-
+        
+        result = await create_despatch_advice(self.valid_event_body)
+        
         self.assertEqual(result["statusCode"], 500)
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertEqual(response_body["error"], "Failed to create despatch advice")
-
+        
         mock_db_connect.assert_called_once()
         mock_get_order.assert_called_once()
         mock_add_despatch.assert_called_once()
         self.client.close.assert_called_once()
 
-    @patch("src.despatchCreate.getDespatchAdvice")
+    @patch('src.despatch.despatchCreate.getDespatchAdvice')
     async def test_validate_despatch_advice_valid(self, mock_get_despatch):
         mock_get_despatch.return_value = self.valid_despatch_data
-
-        result = validate_despatch_advice("D-12345678")
-
+        
+        result = await validate_despatch_advice("D-12345678")
+        
         self.assertEqual(result["statusCode"], 200)
         response_body = json.loads(result["body"])
         self.assertEqual(response_body["despatch_id"], "D-12345678")
         self.assertEqual(response_body["validation_status"], "Valid")
         self.assertNotIn("issues", response_body)
-
+        
         mock_get_despatch.assert_called_once_with("D-12345678")
 
     @patch("src.despatchCreate.getDespatchAdvice")

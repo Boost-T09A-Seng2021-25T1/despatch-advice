@@ -3,7 +3,7 @@ import datetime
 import json
 from lxml import etree
 from src.mongodb import addOrder, getOrderInfo, dbConnect
-from src.despatch import xml_to_json
+from src.despatch.xmlConversion import xml_to_json
 
 
 async def validate_order_document(document, format_type="json"):
