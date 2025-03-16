@@ -104,6 +104,64 @@ async def deleteOrder(orderUUID, orders: AsyncIOMotorCollection):
 async def clearDb(mongoDb: AsyncIOMotorClient):
     await mongoDb.orders.delete_many({})
 
+async def updateDocument(document_id, update_data, db):
+    """
+    Update a document in the database
+    
+    Args:
+        document_id (str): ID of the document to update
+        update_data (dict): Data to update
+        db: Database connection
+    
+    Returns:
+        bool: True if updated successfully, False otherwise
+    """
+    try:
+        # Try to update in orders collection first
+        if document_id.startswith("ORD-"):
+            result = await db.orders.update_one(
+                {"OrderID": document_id},
+                {"$set": update_data}
+            )
+        # Otherwise try in despatches collection
+        else:
+            result = await db.despatches.update_one(
+                {"DespatchID": document_id},
+                {"$set": update_data}
+            )
+        
+        # Check if the update was successful
+        return result.modified_count > 0
+    
+    except Exception as e:
+        print(f"Error updating document: {str(e)}")
+        return False
+
+async def deleteDocument(document_id, db):
+    """
+    Delete a document from the database
+    
+    Args:
+        document_id (str): ID of the document to delete
+        db: Database connection
+    
+    Returns:
+        bool: True if deleted successfully, False otherwise
+    """
+    try:
+        # Try to delete from orders collection first
+        if document_id.startswith("ORD-"):
+            result = await db.orders.delete_one({"OrderID": document_id})
+        # Otherwise try in despatches collection
+        else:
+            result = await db.despatches.delete_one({"DespatchID": document_id})
+        
+        # Check if the deletion was successful
+        return result.deleted_count > 0
+    
+    except Exception as e:
+        print(f"Error deleting document: {str(e)}")
+        return False
 
 if __name__ == "__main__":
     orders, db = dbConnect()
