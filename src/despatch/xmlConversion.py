@@ -2,111 +2,186 @@
 # This file will store functions related to
 # XML processing and conversion
 # ================================================
+
 from lxml import etree
 import json
 from src.utils.constants import cacSchema, cbcSchema, despatchSchema
 
-
 def xml_to_json(xml_string):
     """
     Convert XML string to JSON object
-
+    
     Args:
         xml_string (str): XML document as a string
-
+    
     Returns:
         dict: JSON representation of the XML document
     """
+    if not xml_string:
+        raise ValueError("Empty or null XML input")
+        
     try:
         # Parse XML
-        root = etree.fromstring(
-            xml_string.encode("utf-8") if isinstance(xml_string, str) else xml_string
-        )
-
+        root = etree.fromstring(xml_string.encode('utf-8') if isinstance(xml_string, str) else xml_string)
+        
         # Define namespaces for XPath
-        namespaces = {"cbc": cbcSchema, "cac": cacSchema}
-
+        namespaces = {
+            'cbc': cbcSchema,
+            'cac': cacSchema
+        }
+        
         # Extract key fields
         result = {}
-
+        
         # Basic fields
-        id_elem = root.find(".//cbc:ID", namespaces)
+        id_elem = root.find('.//cbc:ID', namespaces)
         if id_elem is not None:
-            result["ID"] = id_elem.text
-
-        uuid_elem = root.find(".//cbc:UUID", namespaces)
+            result['ID'] = id_elem.text
+        
+        uuid_elem = root.find('.//cbc:UUID', namespaces)
         if uuid_elem is not None:
-            result["UUID"] = uuid_elem.text
-
-        issue_date_elem = root.find(".//cbc:IssueDate", namespaces)
+            result['UUID'] = uuid_elem.text
+        
+        issue_date_elem = root.find('.//cbc:IssueDate', namespaces)
         if issue_date_elem is not None:
-            result["IssueDate"] = issue_date_elem.text
-
+            result['IssueDate'] = issue_date_elem.text
+        
         # CopyIndicator (boolean)
-        copy_indicator_elem = root.find(".//cbc:CopyIndicator", namespaces)
+        copy_indicator_elem = root.find('.//cbc:CopyIndicator', namespaces)
         if copy_indicator_elem is not None:
-            result["CopyIndicator"] = copy_indicator_elem.text.lower() == "true"
-
+            result['CopyIndicator'] = copy_indicator_elem.text.lower() == 'true'
+        
         # Status code
-        status_code_elem = root.find(".//cbc:DocumentStatusCode", namespaces)
+        status_code_elem = root.find('.//cbc:DocumentStatusCode', namespaces)
         if status_code_elem is not None:
-            result["DocumentStatusCode"] = status_code_elem.text
-
+            result['DocumentStatusCode'] = status_code_elem.text
+        
         # Note
-        note_elem = root.find(".//cbc:Note", namespaces)
+        note_elem = root.find('.//cbc:Note', namespaces)
         if note_elem is not None:
-            result["Note"] = note_elem.text
-
+            result['Note'] = note_elem.text
+        
         # Extract customer ID (assuming it's in BuyerReference)
-        buyer_ref_elem = root.find(".//cbc:BuyerReference", namespaces)
+        buyer_ref_elem = root.find('.//cbc:BuyerReference', namespaces)
         if buyer_ref_elem is not None:
-            result["CustomerID"] = buyer_ref_elem.text
-
+            result['CustomerID'] = buyer_ref_elem.text
+        
         # Extract items
         items = []
-        line_items = root.findall(".//cac:OrderLine/cac:LineItem", namespaces)
-
+        line_items = root.findall('.//cac:OrderLine/cac:LineItem', namespaces)
+        
         for i, line_item in enumerate(line_items):
             item = {}
-
+            
             # Extract item ID
-            item_id_elem = line_item.find(
-                ".//cac:Item/cac:SellersItemIdentification/cbc:ID", namespaces
-            )
+            item_id_elem = line_item.find('.//cac:Item/cac:SellersItemIdentification/cbc:ID', namespaces)
             if item_id_elem is not None:
-                item["item_id"] = item_id_elem.text
-
+                item['item_id'] = item_id_elem.text
+            
             # Extract quantity
-            quantity_elem = line_item.find(".//cbc:Quantity", namespaces)
+            quantity_elem = line_item.find('.//cbc:Quantity', namespaces)
             if quantity_elem is not None:
                 try:
-                    item["quantity"] = float(quantity_elem.text)
+                    item['quantity'] = float(quantity_elem.text)
                 except ValueError:
-                    item["quantity"] = 0
-
+                    item['quantity'] = 0
+            
             # Extract price
-            price_elem = line_item.find(".//cac:Price/cbc:PriceAmount", namespaces)
+            price_elem = line_item.find('.//cac:Price/cbc:PriceAmount', namespaces)
             if price_elem is not None:
                 try:
-                    item["price"] = float(price_elem.text)
+                    item['price'] = float(price_elem.text)
                 except ValueError:
-                    item["price"] = 0
-
+                    item['price'] = 0
+            
             items.append(item)
-
-        result["Items"] = items
-
+        
+        result['Items'] = items
+        
         return result
-
+        
     except Exception as e:
         raise ValueError(f"Failed to convert XML to JSON: {str(e)}")
 
+def json_to_xml(json_obj, document_type):
+    """
+    Convert JSON object to XML string
+    
+    Args:
+        json_obj (dict): JSON object to convert
+        document_type (str): Type of document (Order or DespatchAdvice)
+    
+    Returns:
+        str: XML representation of the JSON object
+    """
+    if document_type == "DespatchAdvice":
+        return json_to_xml_despatch_advice(json_obj)
+    elif document_type == "Order":
+        return json_to_xml_order(json_obj)
+    else:
+        raise ValueError(f"Unsupported document type: {document_type}")
+    
+def json_to_xml_order(json_obj):
+    """
+    Convert JSON object to Order XML string
+    
+    Args:
+        json_obj (dict): JSON object to convert
+        
+    Returns:
+        str: XML representation of the Order
+    """
+    # Basic template for Order
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Order xmlns="urn:oasis:names:specification:ubl:schema:xsd:Order-2"
+       xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+       xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2">
+    <cbc:ID>{json_obj.get('ID', '')}</cbc:ID>
+    <cbc:UUID>{json_obj.get('UUID', '')}</cbc:UUID>
+    <cbc:IssueDate>{json_obj.get('IssueDate', '')}</cbc:IssueDate>
+    <cbc:BuyerReference>{json_obj.get('CustomerID', '')}</cbc:BuyerReference>
+    <cbc:CopyIndicator>{str(json_obj.get('CopyIndicator', False)).lower()}</cbc:CopyIndicator>
+    <cbc:DocumentStatusCode>{json_obj.get('DocumentStatusCode', 'NoStatus')}</cbc:DocumentStatusCode>
+    <cbc:Note>{json_obj.get('Note', '')}</cbc:Note>"""
 
+    # Add OrderLine sections for each item
+    items = json_obj.get('Items', [])
+    for item in items:
+        xml += f"""
+    <cac:OrderLine>
+        <cac:LineItem>
+            <cbc:Quantity>{item.get('quantity', 0)}</cbc:Quantity>
+            <cac:Item>
+                <cac:SellersItemIdentification>
+                    <cbc:ID>{item.get('item_id', '')}</cbc:ID>
+                </cac:SellersItemIdentification>
+            </cac:Item>
+            <cac:Price>
+                <cbc:PriceAmount>{item.get('price', 0)}</cbc:PriceAmount>
+            </cac:Price>
+        </cac:LineItem>
+    </cac:OrderLine>"""
+
+    # Close the root element
+    xml += """
+</Order>"""
+
+    return xml
+    
 def json_to_xml_despatch_advice(json_obj):
+    """
+    Convert JSON object to DespatchAdvice XML string
+    
+    Args:
+        json_obj (dict): JSON object to convert
+        
+    Returns:
+        str: XML representation of the DespatchAdvice
+    """
     order_reference = json_obj.get("OrderReference", {})
     supplier_party = json_obj.get("DespatchSupplierParty", {})
     customer_party = json_obj.get("DeliveryCustomerParty", {})
-
+    
     # Basic template with header information
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <DespatchAdvice xmlns="urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2"
@@ -138,7 +213,7 @@ def json_to_xml_despatch_advice(json_obj):
         sp_postal = sp_party.get("PostalAddress", {})
         sp_tax = sp_party.get("PartyTaxScheme", {})
         sp_contact = sp_party.get("Contact", {})
-
+        
         xml += f"""
     <cac:DespatchSupplierParty>
         <cbc:CustomerAssignedAccountID>{supplier_party.get('CustomerAssignedAccountID', '')}</cbc:CustomerAssignedAccountID>
@@ -183,7 +258,7 @@ def json_to_xml_despatch_advice(json_obj):
         cp_postal = cp_party.get("PostalAddress", {})
         cp_tax = cp_party.get("PartyTaxScheme", {})
         cp_contact = cp_party.get("Contact", {})
-
+        
         xml += f"""
     <cac:DeliveryCustomerParty>
         <cbc:CustomerAssignedAccountID>{customer_party.get('CustomerAssignedAccountID', '')}</cbc:CustomerAssignedAccountID>

@@ -1,8 +1,7 @@
 import unittest
 import os
 import sys
-import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 dirPath = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(dirPath)
