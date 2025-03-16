@@ -5,6 +5,13 @@
 # ================================================
 import json
 import uuid
+import os
+import sys
+
+
+sys.path.append(os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..")
+))
 
 # Global in-memory stores (note: these are not persistent across Lambda invocations)
 despatch_advice_store = {}
@@ -106,3 +113,4 @@ def DespatchLinceCreate(event, context):
         "statusCode": 200,
         "body": json.dumps({"message": "Despatch line created successfully"})
     }
+
