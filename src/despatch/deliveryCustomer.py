@@ -17,16 +17,12 @@ async def deliveryCustomer(UUID):
 
         # Retrieve the order document.
         data = await getOrderInfo(UUID, orders)
-        if not data:
-            raise ValueError(
-                "Error: could not retrieve despatch supplier information."
-            )
 
-        # Use top-level "DeliveryCustomerParty" if present; otherwise,
+        # is "DeliveryCustomerParty" present; otherwise,
         # assume the returned document is already the delivery data.
         delivery_data = data.get("DeliveryCustomerParty", data)
 
-        # Build default structure with all keys set to empty strings.
+        # Build default structure.
         OrderInformation = {
             "CustomerAssignedAccountID": delivery_data.get(
                 "CustomerAssignedAccountID", ""
@@ -64,22 +60,26 @@ async def deliveryCustomer(UUID):
             },
         }
 
-        # Update Party if present.
+        # Party if present.
         party = delivery_data.get("Party", {})
         OrderInformation["Party"]["PartyName"] = party.get("PartyName", "")
 
-        # Update PostalAddress (handle nested keys for AddressLine and Country).
+        # PostalAddress.
         postal = party.get("PostalAddress", {})
         for key in OrderInformation["Party"]["PostalAddress"]:
             if key == "Country":
-                OrderInformation["Party"]["PostalAddress"]["Country"][
+                OrderInformation["Party"][
+                "PostalAddress"][
+                "Country"][
                     "IdentificationCode"
                 ] = (
                     postal.get("Country", {})
                     .get("IdentificationCode", "")
                 )
             elif key == "AddressLine":
-                OrderInformation["Party"]["PostalAddress"]["AddressLine"][
+                OrderInformation["Party"][
+                    "PostalAddress"][
+                    "AddressLine"][
                     "Line"
                 ] = (
                     postal.get("AddressLine", {})
@@ -90,7 +90,7 @@ async def deliveryCustomer(UUID):
                     key, ""
                 )
 
-        # Update PartyTaxScheme (handle nested TaxScheme).
+        # PartyTaxScheme.
         tax_scheme = party.get("PartyTaxScheme", {})
         for key in OrderInformation["Party"]["PartyTaxScheme"]:
             if key == "TaxScheme":
@@ -106,7 +106,7 @@ async def deliveryCustomer(UUID):
                     key, ""
                 )
 
-        # Update Contact if present.
+        # Contact if present.
         contact = party.get("Contact", {})
         for key in OrderInformation["Party"]["Contact"]:
             OrderInformation["Party"]["Contact"][key] = contact.get(key, "")
