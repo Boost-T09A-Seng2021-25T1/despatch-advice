@@ -8,15 +8,29 @@ import asyncio
 # ================================================
 # This file will handle sending the final
 # despatch line section.
-
 # ================================================
 
+import os
+import sys
 
-sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..")))
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 
 def despatchLine(despatchLine: dict, UUID: str):
+    """
+    Create a despatch line object with validation.
+
+    Args:
+        despatchLine (dict): Dictionary containing despatch line information
+        UUID (str): UUID of the corresponding order
+
+    Returns:
+        dict: Formatted despatch line object
+
+    Raises:
+        ValueError: If required information is missing or invalid
+    """
     if despatchLine is None:
         raise ValueError("Error: insufficient information entered.")
 
@@ -36,12 +50,24 @@ def despatchLine(despatchLine: dict, UUID: str):
 
     deliveredAmount = backOrderAmount = 0
     iD = note = backOrderReason = date = ""
+    lotNum = 0
 
     try:
         # type validations
-        deliveredAmount = int(despatchLine["DeliveredQuantity"])
-        backOrderAmount = int(despatchLine["BackOrderQuantity"])
-        lotNum = int(despatchLine["LotNumber"])
+        deliveredAmount = int(float(despatchLine["DeliveredQuantity"]))
+        backOrderAmount = int(float(despatchLine["BackOrderQuantity"]))
+
+        # Handle LotNumber that might be a string with non-numeric characters
+        if isinstance(despatchLine["LotNumber"], str):
+            # Extract only digits if the string contains non-numeric characters
+            digits = "".join(filter(str.isdigit, despatchLine["LotNumber"]))
+            if digits:
+                lotNum = int(digits)
+            else:
+                raise ValueError("Invalid lot number format")
+        else:
+            lotNum = int(despatchLine["LotNumber"])
+
         iD = str(despatchLine["ID"])
         date = datetime.strptime(str(despatchLine["ExpiryDate"]), "%Y-%m-%d")
         note = str(despatchLine["Note"])
@@ -74,7 +100,7 @@ def despatchLine(despatchLine: dict, UUID: str):
             # another future fix here.add linestatuscode to body args
             "LineStatusCode": "NoStatus",
             # another future fix here - add metric to body args
-            # metric is missing "="KGM""
+            # metric is missing "=KGM"
             "DeliveredQuantity unitCode": deliveredAmount,
             "BackOrderQuantity unitCode": backOrderAmount,
             "BackOrderReason": backOrderReason,

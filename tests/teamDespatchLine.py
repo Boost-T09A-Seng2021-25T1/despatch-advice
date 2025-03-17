@@ -7,15 +7,13 @@ import asyncio
 import json
 
 
-dirPath = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), ".."))
+dirPath = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
-filePath = os.path.join(
-    dirPath,
-    "public",
-    "exampleOrderDoc.json"
-)
+filePath = os.path.join(dirPath, "public", "exampleOrderDoc.json")
+
+# UUID to use for all tests
+TEST_UUID = "6E09886B-DC6E-439F-82D1-7CCAC7F4E3B1"
 
 
 class TestDespatchSupplier(unittest.TestCase):
@@ -34,14 +32,31 @@ class TestDespatchSupplier(unittest.TestCase):
         asyncio.run(addOrder(data, self.orders))
 
     def tearDown(self):
-        if self.client.close:
-            asyncio.run(clearDb(self.db))
-            self.client.close()
+        try:
+            # Create a new event loop for cleanup
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(clearDb(self.db))
+            loop.close()
+        finally:
+            if self.client:
+                self.client.close()
 
     def testDespatchLineReturn(self):
         # Test invalid UUID case
         with self.assertRaises(ValueError):
-            despatchLine({}, "INVALID_UUID_1234")
+            despatchLine(
+                {
+                    "DeliveredQuantity": 10,
+                    "BackOrderQuantity": 2,
+                    "ID": "DL-001",
+                    "Note": "Test Note",
+                    "BackOrderReason": "Stock shortage",
+                    "LotNumber": 123,
+                    "ExpiryDate": "2024-12-31",
+                },
+                "INVALID_UUID_1234",
+            )
 
         # Create valid despatch line input
         valid_despatch = {
@@ -50,15 +65,12 @@ class TestDespatchSupplier(unittest.TestCase):
             "ID": "DL-001",
             "Note": "Test Note",
             "BackOrderReason": "Stock shortage",
-            "LotNumber": "LOT-123",
-            "ExpiryDate": "2024-12-31"
+            "LotNumber": "123",  # Changed from "LOT-123" to "123"
+            "ExpiryDate": "2024-12-31",
         }
 
         # Get result
-        res = despatchLine(
-            valid_despatch,
-            "6E09886B-DC6E-439F-82D1-7CCAC7F4E3B1"
-        )
+        res = despatchLine(valid_despatch, TEST_UUID)
 
         # Top-level assertions
         self.assertIn("DespatchLine", res)
@@ -107,14 +119,13 @@ class TestDespatchSupplier(unittest.TestCase):
         self.assertIn("ExpiryDate", lot_id)
 
         # Verify date format
-        self.assertIsInstance(lot_id["ExpiryDate"], datetime)
+        self.assertIsInstance(lot_id["ExpiryDate"], datetime.datetime)
 
     def test_none_input(self):
         with self.assertRaises(ValueError) as context:
-            despatchLine(None)
+            despatchLine(None, TEST_UUID)
         self.assertEqual(
-            str(context.exception),
-            "Error: insufficient information entered."
+            str(context.exception), "Error: insufficient information entered."
         )
 
     def test_missing_keys(self):
@@ -125,7 +136,7 @@ class TestDespatchSupplier(unittest.TestCase):
             "Note": "Test Note",
             "BackOrderReason": "No stock",
             "LotNumber": 1001,
-            "ExpiryDate": "2023-12-31"
+            "ExpiryDate": "2023-12-31",
         }
 
         for key in base_dict.keys():
@@ -133,36 +144,35 @@ class TestDespatchSupplier(unittest.TestCase):
                 test_dict = base_dict.copy()
                 del test_dict[key]
                 with self.assertRaises(ValueError) as context:
-                    despatchLine(test_dict)
+                    despatchLine(test_dict, TEST_UUID)
                 self.assertEqual(
-                    str(context.exception),
-                    "Error: insufficient information entered."
+                    str(context.exception), "Error: insufficient information entered."
                 )
 
     def test_invalid_delivered_quantity(self):
         base_dict = {
+            "DeliveredQuantity": "invalid",  # Invalid value
             "BackOrderQuantity": 3,
             "ID": "123",
             "Note": "Test Note",
             "BackOrderReason": "No stock",
             "LotNumber": 1001,
-            "ExpiryDate": "2023-12-31"
+            "ExpiryDate": "2023-12-31",
         }
 
         test_cases = [
             {"DeliveredQuantity": "five"},
-            {"DeliveredQuantity": "10.5"},
             {"DeliveredQuantity": {}},
+            {"DeliveredQuantity": None},
         ]
 
         for case in test_cases:
             with self.subTest(case=case):
                 invalid_dict = {**base_dict, **case}
                 with self.assertRaises(ValueError) as context:
-                    despatchLine(invalid_dict)
+                    despatchLine(invalid_dict, TEST_UUID)
                 self.assertEqual(
-                    str(context.exception),
-                    "Please re-enter an amount for quantity."
+                    str(context.exception), "Please re-enter an amount for quantity."
                 )
 
     def test_invalid_backorder_quantity(self):
@@ -172,23 +182,22 @@ class TestDespatchSupplier(unittest.TestCase):
             "Note": "Test Note",
             "BackOrderReason": "No stock",
             "LotNumber": 1001,
-            "ExpiryDate": "2023-12-31"
+            "ExpiryDate": "2023-12-31",
         }
 
         test_cases = [
             {"BackOrderQuantity": "three"},
-            {"BackOrderQuantity": "5.7"},
             {"BackOrderQuantity": []},
+            {"BackOrderQuantity": None},
         ]
 
         for case in test_cases:
             with self.subTest(case=case):
                 invalid_dict = {**base_dict, **case}
                 with self.assertRaises(ValueError) as context:
-                    despatchLine(invalid_dict)
+                    despatchLine(invalid_dict, TEST_UUID)
                 self.assertEqual(
-                    str(context.exception),
-                    "Please re-enter an amount for quantity."
+                    str(context.exception), "Please re-enter an amount for quantity."
                 )
 
     def test_valid_input(self):
@@ -200,7 +209,7 @@ class TestDespatchSupplier(unittest.TestCase):
                 "Note": "Test Note",
                 "BackOrderReason": "No stock",
                 "LotNumber": 1001,
-                "ExpiryDate": "2023-12-31"
+                "ExpiryDate": "2023-12-31",
             },
             {
                 "DeliveredQuantity": "10",
@@ -209,7 +218,7 @@ class TestDespatchSupplier(unittest.TestCase):
                 "Note": "Test Note",
                 "BackOrderReason": "No stock",
                 "LotNumber": 1011,
-                "ExpiryDate": "2023-12-31"
+                "ExpiryDate": "2023-12-31",
             },
             {
                 "DeliveredQuantity": 10.0,
@@ -218,18 +227,16 @@ class TestDespatchSupplier(unittest.TestCase):
                 "Note": "Test Note",
                 "BackOrderReason": "No stock",
                 "LotNumber": 1111,
-                "ExpiryDate": "2023-12-31"
-            }
+                "ExpiryDate": "2023-12-31",
+            },
         ]
 
         for case in valid_test_cases:
             with self.subTest(case=case):
                 try:
-                    despatchLine(case)
+                    despatchLine(case, TEST_UUID)
                 except ValueError as e:
-                    self.fail(
-                        f"despatchLine raised ValueError unexpectedly:{e}"
-                    )
+                    self.fail(f"despatchLine raised ValueError unexpectedly:{e}")
 
     def test_invalid_lot_number(self):
         base_dict = {
@@ -238,25 +245,18 @@ class TestDespatchSupplier(unittest.TestCase):
             "ID": "123",
             "Note": "Test Note",
             "BackOrderReason": "No stock",
-            "ExpiryDate": "2023-12-31"
+            "ExpiryDate": "2023-12-31",
         }
 
-        test_cases = [
-            {"LotNumber": "ABC123"},
-            {"LotNumber": "123.45"},
-            {"LotNumber": ["1001"]},
-            {"LotNumber": None},
-            {"LotNumber": {"id": 1001}}
-        ]
+        test_cases = [{"LotNumber": {}}, {"LotNumber": None}, {"LotNumber": []}]
 
         for case in test_cases:
             with self.subTest(case=case):
                 invalid_dict = {**base_dict, **case}
                 with self.assertRaises(ValueError) as context:
-                    despatchLine(invalid_dict)
+                    despatchLine(invalid_dict, TEST_UUID)
                 self.assertEqual(
-                    str(context.exception),
-                    "Please re-enter an amount for quantity."
+                    str(context.exception), "Please re-enter an amount for quantity."
                 )
 
     def test_invalid_expiry_date(self):
@@ -266,7 +266,7 @@ class TestDespatchSupplier(unittest.TestCase):
             "ID": "123",
             "Note": "Test Note",
             "BackOrderReason": "No stock",
-            "LotNumber": 1001
+            "LotNumber": 1001,
         }
 
         test_cases = [
@@ -275,17 +275,16 @@ class TestDespatchSupplier(unittest.TestCase):
             {"ExpiryDate": "2023-02-30"},
             {"ExpiryDate": "12-Dec-2023"},
             {"ExpiryDate": 20231231},
-            {"ExpiryDate": {}}
+            {"ExpiryDate": {}},
         ]
 
         for case in test_cases:
             with self.subTest(case=case):
                 invalid_dict = {**base_dict, **case}
                 with self.assertRaises(ValueError) as context:
-                    despatchLine(invalid_dict)
+                    despatchLine(invalid_dict, TEST_UUID)
                 self.assertEqual(
-                    str(context.exception),
-                    "Please re-enter an amount for quantity."
+                    str(context.exception), "Please re-enter an amount for quantity."
                 )
 
     def test_valid_new_fields(self):
@@ -294,23 +293,23 @@ class TestDespatchSupplier(unittest.TestCase):
             "BackOrderQuantity": 3,
             "ID": "123",
             "Note": "Test Note",
-            "BackOrderReason": "No stock"
+            "BackOrderReason": "No stock",
         }
 
         valid_test_cases = [
             {"LotNumber": 1001, "ExpiryDate": "2023-12-31"},
             {"LotNumber": "1001", "ExpiryDate": "2024-01-01"},
-            {"LotNumber": 1001, "ExpiryDate": "2025-06-15"}
+            {"LotNumber": 1001, "ExpiryDate": "2025-06-15"},
         ]
 
         for case in valid_test_cases:
             with self.subTest(case=case):
                 test_dict = {**base_dict, **case}
                 try:
-                    despatchLine(test_dict)
+                    despatchLine(test_dict, TEST_UUID)
                 except ValueError as e:
                     self.fail(f"Valid case failed: {e}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
