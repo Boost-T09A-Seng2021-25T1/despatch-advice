@@ -2,20 +2,15 @@ import unittest
 from src.despatch.despatchLine import despatchLine
 import os
 import datetime
-from src.mongodb import dbConnect, clearDb, addOrder
+from src.mongodb import dbConnect, addOrder
 import asyncio
 import json
 
 
-dirPath = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), ".."))
+dirPath = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
-filePath = os.path.join(
-    dirPath,
-    "public",
-    "exampleOrderDoc.json"
-)
+filePath = os.path.join(dirPath, "public", "exampleOrderDoc.json")
 
 # UUID to use for all tests
 TEST_UUID = "6E09886B-DC6E-439F-82D1-7CCAC7F4E3B1"
@@ -38,24 +33,28 @@ class TestDespatchSupplier(unittest.TestCase):
 
     def tearDown(self):
         # Make sure we close the client
-        if hasattr(self, 'client') and self.client:
+        if hasattr(self, "client") and self.client:
             self.client.close()
-            
+
         # No need to run clearDb here - it's causing event loop errors
-        # Each test can set up its own data and we'll rely on clean test isolation
+        # Each test can set up its own data and
+        # we'll rely on clean test isolation
 
     def testDespatchLineReturn(self):
         # Test invalid UUID case
         with self.assertRaises(ValueError):
-            despatchLine({
-                "DeliveredQuantity": 10,
-                "BackOrderQuantity": 2,
-                "ID": "DL-001",
-                "Note": "Test Note",
-                "BackOrderReason": "Stock shortage",
-                "LotNumber": 123,
-                "ExpiryDate": "2024-12-31"
-            }, "INVALID_UUID_1234")
+            despatchLine(
+                {
+                    "DeliveredQuantity": 10,
+                    "BackOrderQuantity": 2,
+                    "ID": "DL-001",
+                    "Note": "Test Note",
+                    "BackOrderReason": "Stock shortage",
+                    "LotNumber": 123,
+                    "ExpiryDate": "2024-12-31",
+                },
+                "INVALID_UUID_1234",
+            )
 
         # Create valid despatch line input
         valid_despatch = {
@@ -65,14 +64,11 @@ class TestDespatchSupplier(unittest.TestCase):
             "Note": "Test Note",
             "BackOrderReason": "Stock shortage",
             "LotNumber": "123",  # Changed from "LOT-123" to "123"
-            "ExpiryDate": "2024-12-31"
+            "ExpiryDate": "2024-12-31",
         }
 
         # Get result
-        res = despatchLine(
-            valid_despatch,
-            TEST_UUID
-        )
+        res = despatchLine(valid_despatch, TEST_UUID)
 
         # Top-level assertions
         self.assertIn("DespatchLine", res)
@@ -128,8 +124,7 @@ class TestDespatchSupplier(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             despatchLine(None, TEST_UUID)
         self.assertEqual(
-            str(context.exception),
-            "Error: insufficient information entered."
+            str(context.exception), "Error: insufficient information entered."
         )
 
     def test_missing_keys(self):
@@ -140,7 +135,7 @@ class TestDespatchSupplier(unittest.TestCase):
             "Note": "Test Note",
             "BackOrderReason": "No stock",
             "LotNumber": 1001,
-            "ExpiryDate": "2023-12-31"
+            "ExpiryDate": "2023-12-31",
         }
 
         for key in base_dict.keys():
@@ -162,7 +157,7 @@ class TestDespatchSupplier(unittest.TestCase):
             "Note": "Test Note",
             "BackOrderReason": "No stock",
             "LotNumber": 1001,
-            "ExpiryDate": "2023-12-31"
+            "ExpiryDate": "2023-12-31",
         }
 
         test_cases = [
@@ -188,7 +183,7 @@ class TestDespatchSupplier(unittest.TestCase):
             "Note": "Test Note",
             "BackOrderReason": "No stock",
             "LotNumber": 1001,
-            "ExpiryDate": "2023-12-31"
+            "ExpiryDate": "2023-12-31",
         }
 
         test_cases = [
@@ -216,9 +211,9 @@ class TestDespatchSupplier(unittest.TestCase):
             "Note": "Test Note",
             "BackOrderReason": "No stock",
             "LotNumber": 1001,
-            "ExpiryDate": "2023-12-31"
+            "ExpiryDate": "2023-12-31",
         }
-        
+
         try:
             result = despatchLine(valid_case, TEST_UUID)
             # Verify we got a proper result structure
@@ -235,14 +230,11 @@ class TestDespatchSupplier(unittest.TestCase):
             "ID": "123",
             "Note": "Test Note",
             "BackOrderReason": "No stock",
-            "ExpiryDate": "2023-12-31"
+            "ExpiryDate": "2023-12-31",
         }
 
-        test_cases = [
-            {"LotNumber": {}},
-            {"LotNumber": None},
-            {"LotNumber": []}
-        ]
+        test_cases = [{"LotNumber": {}},
+                      {"LotNumber": None}, {"LotNumber": []}]
 
         for case in test_cases:
             with self.subTest(case=case):
@@ -261,7 +253,7 @@ class TestDespatchSupplier(unittest.TestCase):
             "ID": "123",
             "Note": "Test Note",
             "BackOrderReason": "No stock",
-            "LotNumber": 1001
+            "LotNumber": 1001,
         }
 
         test_cases = [
@@ -270,7 +262,7 @@ class TestDespatchSupplier(unittest.TestCase):
             {"ExpiryDate": "2023-02-30"},
             {"ExpiryDate": "12-Dec-2023"},
             {"ExpiryDate": 20231231},
-            {"ExpiryDate": {}}
+            {"ExpiryDate": {}},
         ]
 
         for case in test_cases:
@@ -291,10 +283,10 @@ class TestDespatchSupplier(unittest.TestCase):
             "ID": "123",
             "Note": "Test Note",
             "BackOrderReason": "No stock",
-            "LotNumber": 1001, 
-            "ExpiryDate": "2023-12-31"
+            "LotNumber": 1001,
+            "ExpiryDate": "2023-12-31",
         }
-        
+
         try:
             result = despatchLine(test_dict, TEST_UUID)
             # Verify we got a proper result structure
@@ -305,5 +297,5 @@ class TestDespatchSupplier(unittest.TestCase):
             self.fail(f"Valid case failed: {e}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
