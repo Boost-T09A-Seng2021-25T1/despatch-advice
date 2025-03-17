@@ -14,20 +14,21 @@ import os
 import sys
 
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+sys.path.append(os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..")))
 
 
 def despatchLine(despatchLine: dict, UUID: str):
     """
     Create a despatch line object with validation.
-
+    
     Args:
         despatchLine (dict): Dictionary containing despatch line information
         UUID (str): UUID of the corresponding order
-
+        
     Returns:
         dict: Formatted despatch line object
-
+        
     Raises:
         ValueError: If required information is missing or invalid
     """
@@ -56,18 +57,18 @@ def despatchLine(despatchLine: dict, UUID: str):
         # type validations
         deliveredAmount = int(float(despatchLine["DeliveredQuantity"]))
         backOrderAmount = int(float(despatchLine["BackOrderQuantity"]))
-
+        
         # Handle LotNumber that might be a string with non-numeric characters
         if isinstance(despatchLine["LotNumber"], str):
             # Extract only digits if the string contains non-numeric characters
-            digits = "".join(filter(str.isdigit, despatchLine["LotNumber"]))
+            digits = ''.join(filter(str.isdigit, despatchLine["LotNumber"]))
             if digits:
                 lotNum = int(digits)
             else:
                 raise ValueError("Invalid lot number format")
         else:
             lotNum = int(despatchLine["LotNumber"])
-
+            
         iD = str(despatchLine["ID"])
         date = datetime.strptime(str(despatchLine["ExpiryDate"]), "%Y-%m-%d")
         note = str(despatchLine["Note"])
@@ -82,14 +83,19 @@ def despatchLine(despatchLine: dict, UUID: str):
     # future issue to be fixed - this will require another
     # user arg/input for updated delivery date instead of recursion
 
-    mongoClient, db = asyncio.run(dbConnect())
-    orders = db["orders"]
+    try:
+        mongoClient, db = asyncio.run(dbConnect())
+        orders = db["orders"]
 
-    data = asyncio.run(getOrderInfo(UUID, orders))
-    error = "Error: could not retrieve despatch supplier information."
-    if not data:
-        mongoClient.close()
-        raise ValueError(error)
+        data = asyncio.run(getOrderInfo(UUID, orders))
+        error = "Error: could not retrieve despatch supplier information."
+        if not data:
+            raise ValueError(error)
+    except Exception as e:
+        raise ValueError(f"Database error: {str(e)}")
+    finally:
+        if 'mongoClient' in locals():
+            mongoClient.close()
 
     item = data["OrderLine"]["LineItem"]["Item"]
 
