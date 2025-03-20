@@ -12,6 +12,19 @@ from src.despatch.orderCreate import (
 
 async def endpointFunc(xmlDoc: str, shipment: dict,
                        despatch: dict, supplier: dict):
+    """
+    Main API endpoint function that coordinates the
+    order and despatch creation process
+
+    Args:
+        xmlDoc (str): XML string of the order document
+        shipment (dict): Information about shipment details
+        despatch (dict): Information about despatch details
+        supplier (dict): supplier info
+
+    Returns:
+        dict: Response containing results of the operations
+    """
 
     if xmlDoc is None or not isinstance(xmlDoc, str):
         raise TypeError("Error: document is invalid.")
@@ -22,42 +35,7 @@ async def endpointFunc(xmlDoc: str, shipment: dict,
     ):
         raise TypeError("Error: invalid shipment or despatch information")
 
-    # call Arnav's func here for xml to json
-
-    # assign return, and call arnav's func to save to db
-
-    # call Yousef's func and pass in deliverPeriodReq info
-
-    # call Edward's func and pass in Backordering info
-
-    # call my func to determine if seller == supplier
-
-    """
-    Main API endpoint function that coordinates the
-    order and despatch creation process
-
-    Args:
-        xmlDoc (str): XML string of the order document
-        shipment (dict): Information about shipment details
-        despatch (dict): Information about despatch details
-        sellerIsSupplier (bool): Flag indicating if seller is also supplier
-
-    Returns:
-        dict: Response containing results of the operations
-    """
-    if xmlDoc is None or not isinstance(xmlDoc, str):
-        return {
-            "statusCode": 400,
-            "body": json.dumps({"error": "Error: document is invalid."}),
-        }
-
-    if not isinstance(shipment, dict) or not isinstance(despatch, dict):
-        return {
-            "statusCode": 400,
-            "body": json.dumps(
-                {"error": "Error: invalid shipment or despatch information"}
-            ),
-        }
+    # if xmlDoc is None or not isinstance(xmlDoc, str):
 
     try:
         (is_valid, validation_issues,
