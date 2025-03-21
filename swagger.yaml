@@ -1,0 +1,991 @@
+openapi: 3.0.0
+info:
+  title: Despatch and Order Management API
+  version: 1.0.0
+  description: API for managing orders, shipments, and despatch advices.
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/HuzaifaYousufy/Swagger.py/1.0.0
+  - url: http://localhost:8000
+    description: Local development server
+paths:
+  /:
+    get:
+      summary: Read Root
+      description: Returns a simple greeting.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+              example: "Hello, World!"
+
+  /v1/shipment/{shipment_id}:
+    get:
+      summary: Get Shipment
+      description: Retrieve details of a specific shipment by ID.
+      parameters:
+        - name: shipment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shipment'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/order_reference/{order_id}/{sales_order_id}:
+    get:
+      summary: Get Order Reference
+      description: Retrieve order reference details by order ID and sales order ID.
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: sales_order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderReference'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatch_id}/createSupplierSection:
+    post:
+      summary: Create Supplier Section
+      description: Create a supplier section for a despatch advice.
+      parameters:
+        - name: despatch_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sales_order_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatch_id}/createDespatchLine:
+    put:
+      summary: Create Despatch Line
+      description: Create a despatch line for a despatch advice.
+      parameters:
+        - name: despatch_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: delivered_quantity
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: quantity
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/order/create:
+    post:
+      summary: Create Order
+      description: Create a new order.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/order/validate/{order_id}:
+    get:
+      summary: Validate Order
+      description: Validate the existence of an order by its ID.
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/stock/check/{order_id}:
+    get:
+      summary: Check Stock
+      description: Check stock availability for items in an order.
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/order/{order_id}:
+    get:
+      summary: Fetch Order
+      description: Fetch details of an order by its ID.
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch:
+    post:
+      summary: Create Despatch Advice
+      description: Create a new despatch advice.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DespatchAdvice'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/validate/{despatchId}:
+    get:
+      summary: Validate Despatch
+      description: Validate the existence of a despatch advice by its ID.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}:
+    get:
+      summary: Retrieve Despatch XML
+      description: Retrieve the XML representation of a despatch advice.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+    put:
+      summary: Update Despatch
+      description: Update details of a despatch advice.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+    delete:
+      summary: Delete Despatch
+      description: Delete a despatch advice by its ID.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/supplierParty/postalAddress:
+    put:
+      summary: Update Postal Address
+      description: Update the postal address for a supplier party.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: salesOrderId
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryAddress'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/supplierParty/partytaxScheme:
+    put:
+      summary: Update Party Tax Scheme
+      description: Update the party tax scheme for a supplier party.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: salesOrderId
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartyTaxScheme'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/supplierParty/contacts:
+    put:
+      summary: Update Contact Details
+      description: Update the contact details for a supplier party.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: salesOrderId
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactDetails'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/customerParty/postalAddress:
+    put:
+      summary: Update Customer Postal Address
+      description: Update the postal address for a customer party.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryAddress'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/customerParty/partytaxScheme:
+    put:
+      summary: Update Customer Party Tax Scheme
+      description: Update the party tax scheme for a customer party.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartyTaxScheme'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/customerParty/contacts:
+    put:
+      summary: Update Customer Contact Details
+      description: Update the contact details for a customer party.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactDetails'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/DespatchLine/OrderLineReference:
+    put:
+      summary: Update Order Line Reference
+      description: Update the order line reference for a despatch line.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/DespatchLine/Item:
+    put:
+      summary: Update Item Details
+      description: Update the item details for a despatch line.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/DespatchLine/{Id}:
+    delete:
+      summary: Delete Despatch Line
+      description: Delete a despatch line by its ID.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: Id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+    put:
+      summary: Update Despatch Line
+      description: Update details of a despatch line.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: Id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+    get:
+      summary: Get Despatch Line
+      description: Retrieve details of a despatch line by its ID.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: Id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/DespatchLine:
+    get:
+      summary: Get All Despatch Lines
+      description: Retrieve all despatch lines for a despatch advice.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/createPdf:
+    get:
+      summary: Generate PDF
+      description: Generate a PDF for a despatch advice.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/finalize:
+    post:
+      summary: Finalize Despatch
+      description: Finalize a despatch advice.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalizeRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/generatePDF:
+    post:
+      summary: Generate PDF Finalized
+      description: Generate a PDF for a finalized despatch advice.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /v1/despatch/{despatchId}/sendDocuments:
+    get:
+      summary: Send Documents
+      description: Send documents for a despatch advice.
+      parameters:
+        - name: despatchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+components:
+  schemas:
+    Country:
+      type: object
+      properties:
+        IdentificationCode:
+          type: string
+          nullable: true
+
+    DeliveryAddress:
+      type: object
+      properties:
+        StreetName:
+          type: string
+          nullable: true
+        BuildingName:
+          type: string
+          nullable: true
+        BuildingNumber:
+          type: string
+          nullable: true
+        CityName:
+          type: string
+          nullable: true
+        PostalZone:
+          type: string
+          nullable: true
+        CountrySubentity:
+          type: string
+          nullable: true
+        AddressLine:
+          type: string
+          nullable: true
+        CountryDetails:
+          $ref: '#/components/schemas/Country'
+
+    RequestedDeliveryPeriod:
+      type: object
+      properties:
+        StartDate:
+          type: string
+          nullable: true
+        StartTime:
+          type: string
+          nullable: true
+        EndDate:
+          type: string
+          nullable: true
+        EndTime:
+          type: string
+          nullable: true
+
+    Delivery:
+      type: object
+      properties:
+        DeliveryAddress:
+          $ref: '#/components/schemas/DeliveryAddress'
+        RequestedDeliveryPeriod:
+          $ref: '#/components/schemas/RequestedDeliveryPeriod'
+
+    Consignment:
+      type: object
+      properties:
+        ID:
+          type: integer
+
+    Shipment:
+      type: object
+      properties:
+        ID:
+          type: integer
+        Consignment:
+          $ref: '#/components/schemas/Consignment'
+        Delivery:
+          $ref: '#/components/schemas/Delivery'
+
+    OrderReference:
+      type: object
+      properties:
+        ID:
+          type: integer
+        SalesOrderID:
+          type: integer
+        UUID:
+          type: string
+          nullable: true
+        IssueDate:
+          type: string
+          nullable: true
+
+    OrderItem:
+      type: object
+      properties:
+        item_id:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: number
+          format: float
+
+    Order:
+      type: object
+      properties:
+        customer_id:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+
+    DespatchAdvice:
+      type: object
+      properties:
+        order_id:
+          type: string
+        supplier:
+          type: object
+          additionalProperties: true
+        customer:
+          type: object
+          additionalProperties: true
+
+    PartyTaxScheme:
+      type: object
+      properties:
+        RegistrationName:
+          type: string
+        CompanyId:
+          type: string
+        ExemptionReason:
+          type: string
+        TaxScheme:
+          type: object
+          additionalProperties: true
+
+    ContactDetails:
+      type: object
+      properties:
+        Name:
+          type: string
+        Telephone:
+          type: string
+        Telefax:
+          type: string
+        Email:
+          type: string
+
+    FinalizeRequest:
+      type: object
+      properties:
+        external_api_url:
+          type: string
+        validate_before_finalizing:
+          type: boolean
+
+    HTTPValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+
+    ValidationError:
+      type: object
+      properties:
+        loc:
+          type: array
+          items:
+            type: string
+        msg:
+          type: string
+        type:
+          type: string
