@@ -111,7 +111,8 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         mock_xml_to_json.assert_called_once_with(self.valid_order_xml)
 
     @patch("src.despatch.orderCreate.xml_to_json")
-    async def test_validate_order_document_xml_parsing_error(self, mock_xml_to_json):
+    async def test_validate_order_document_xml_parsing_error(self,
+                                                             mock_xml_to_json):
         mock_xml_to_json.side_effect = ValueError("XML parsing error")
 
         is_valid, issues, document = await validate_order_document(
@@ -131,7 +132,8 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
             "Items": [],
         }
 
-        is_valid, issues, document = await validate_order_document(invalid_order)
+        is_valid, issues, document = await validate_order_document(
+                                                                invalid_order)
 
         self.assertFalse(is_valid)
         self.assertGreater(len(issues), 0)
@@ -153,7 +155,8 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
             ],
         }
 
-        is_valid, issues, document = await validate_order_document(invalid_order)
+        is_valid, issues, document = await validate_order_document(
+                                                                invalid_order)
 
         self.assertFalse(is_valid)
         self.assertGreater(len(issues), 0)
@@ -186,17 +189,23 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("order_id", response_body)
         self.assertIn("uuid", response_body)
-        self.assertEqual(response_body["status"], "Order Created")
-
+        self.assertEqual(response_body["status"],
+                         "Order Created"
+                         )
         mock_db_connect.assert_called_once()
         mock_add_order.assert_called_once()
-        self.assertEqual(mock_add_order.call_args[0][0]["CustomerID"], "CUST-001")
+        self.assertEqual(
+            mock_add_order.call_args[0][0]["CustomerID"],
+            "CUST-001"
+        )
         self.assertEqual(len(mock_add_order.call_args[0][0]["Items"]), 2)
         self.client.close.assert_called_once()
 
     @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
     @patch("src.despatch.orderCreate.addOrder", new_callable=AsyncMock)
-    async def test_create_order_invalid_input(self, mock_add_order, mock_db_connect):
+    async def test_create_order_invalid_input(
+        self, mock_add_order, mock_db_connect
+    ):
         invalid_event_body = {"customer_id": "CUST-001"}
 
         result = await create_order(invalid_event_body)
@@ -230,7 +239,9 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
     @patch("src.despatch.orderCreate.getOrderInfo", new_callable=AsyncMock)
-    async def test_validate_order_not_found(self, mock_get_order, mock_db_connect):
+    async def test_validate_order_not_found(
+        self, mock_get_order, mock_db_connect
+    ):
         mock_db_connect.return_value = (self.client, self.db)
 
         mock_get_order.return_value = None
@@ -267,7 +278,9 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
     @patch("src.despatch.orderCreate.getOrderInfo", new_callable=AsyncMock)
-    async def test_check_stock_available(self, mock_get_order, mock_db_connect):
+    async def test_check_stock_available(
+        self, mock_get_order, mock_db_connect
+    ):
         mock_db_connect.return_value = (self.client, self.db)
 
         test_order = self.sample_order.copy()
@@ -302,7 +315,9 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
     @patch("src.despatch.orderCreate.getOrderInfo", new_callable=AsyncMock)
-    async def test_check_stock_insufficient(self, mock_get_order, mock_db_connect):
+    async def test_check_stock_insufficient(
+        self, mock_get_order, mock_db_connect
+    ):
         mock_db_connect.return_value = (self.client, self.db)
 
         test_order = self.sample_order.copy()
@@ -340,7 +355,9 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         invalid_order = self.valid_order_json.copy()
         invalid_order["CopyIndicator"] = "True"  # String instead of boolean
 
-        is_valid, issues, document = await validate_order_document(invalid_order)
+        is_valid, issues, document = await validate_order_document(
+            invalid_order
+        )
 
         self.assertFalse(is_valid)
         self.assertIn("CopyIndicator must be a boolean value", issues)
@@ -351,7 +368,9 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         invalid_order = self.valid_order_json.copy()
         invalid_order["DocumentStatusCode"] = "Invalid"
 
-        is_valid, issues, document = await validate_order_document(invalid_order)
+        is_valid, issues, document = await validate_order_document(
+            invalid_order
+        )
 
         self.assertFalse(is_valid)
         self.assertIn("Invalid DocumentStatusCode", issues)
@@ -365,7 +384,9 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         ):
             try:
                 # Call directly, not through the patched function
-                is_valid, issues, document = await validate_order_document(None)
+                is_valid, issues, document = await validate_order_document(
+                    None
+                )
 
                 # Check that exception was caught and handled
                 self.assertFalse(is_valid)
@@ -373,11 +394,15 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("Validation error", issues[0])
                 self.assertIsNone(document)
             except Exception:
-                self.fail("validate_order_document didn't handle the exception")
+                self.fail(
+                    "validate_order_document didn't handle the exception"
+                )
 
     @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
     @patch("src.despatch.orderCreate.addOrder", new_callable=AsyncMock)
-    async def test_create_order_database_failure(self, mock_add_order, mock_db_connect):
+    async def test_create_order_database_failure(
+        self, mock_add_order, mock_db_connect
+    ):
         """Test create_order with a database failure."""
         valid_event_body = {
             "customer_id": "CUST-001",
@@ -423,7 +448,9 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
     @patch("src.despatch.orderCreate.getOrderInfo", new_callable=AsyncMock)
-    async def test_validate_order_invalid(self, mock_get_order, mock_db_connect):
+    async def test_validate_order_invalid(
+        self, mock_get_order, mock_db_connect
+    ):
         """Test validate_order with an invalid order."""
         mock_db_connect.return_value = (self.client, self.db)
 
@@ -458,7 +485,9 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
     @patch("src.despatch.orderCreate.getOrderInfo", new_callable=AsyncMock)
-    async def test_validate_order_exception(self, mock_get_order, mock_db_connect):
+    async def test_validate_order_exception(
+        self, mock_get_order, mock_db_connect
+    ):
         """Test validate_order with an exception."""
         mock_db_connect.side_effect = Exception("Test database exception")
 
@@ -490,7 +519,9 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
     @patch("src.despatch.orderCreate.getOrderInfo", new_callable=AsyncMock)
-    async def test_check_stock_exception(self, mock_get_order, mock_db_connect):
+    async def test_check_stock_exception(
+        self, mock_get_order, mock_db_connect
+    ):
         """Test check_stock with an exception."""
         mock_db_connect.side_effect = Exception("Test database exception")
 
