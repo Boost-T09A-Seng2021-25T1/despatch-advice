@@ -103,8 +103,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.despatch.despatchCreate.dbConnect", new_callable=AsyncMock)
     @patch("src.despatch.despatchCreate.addOrder", new_callable=AsyncMock)
-    async def test_add_despatch_advice_success(
-                self, mock_add_order, mock_db_connect):
+    async def test_add_despatch_advice_success(self, mock_add_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         mock_add_order.return_value = "inserted_id"
 
@@ -112,16 +111,12 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result, "inserted_id")
         mock_db_connect.assert_called_once()
-        mock_add_order.assert_called_once_with(
-            self.valid_despatch_data, self.db)
+        mock_add_order.assert_called_once_with(self.valid_despatch_data, self.db)
         self.client.close.assert_called_once()
 
     @patch("src.despatch.despatchCreate.dbConnect", new_callable=AsyncMock)
-    @patch("src.despatch.despatchCreate.addOrder",
-           new_callable=AsyncMock)
-    async def test_add_despatch_advice_failure(self,
-                                               mock_add_order,
-                                               mock_db_connect):
+    @patch("src.despatch.despatchCreate.addOrder", new_callable=AsyncMock)
+    async def test_add_despatch_advice_failure(self, mock_add_order, mock_db_connect):
         mock_db_connect.return_value = (self.client, self.db)
         mock_add_order.side_effect = Exception("Database error")
 
@@ -196,10 +191,8 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
             "<cbc:DocumentStatusCode>NoStatus</cbc:DocumentStatusCode>", result
         )
         self.assertIn(
-            "<cbc:DespatchAdviceTypeCode>"
-            "delivery"
-            "</cbc:DespatchAdviceTypeCode>",
-            result
+            "<cbc:DespatchAdviceTypeCode>" "delivery" "</cbc:DespatchAdviceTypeCode>",
+            result,
         )
 
     @patch("src.despatch.despatchCreate.dbConnect", new_callable=AsyncMock)
@@ -309,8 +302,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["statusCode"], 500)
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
-        self.assertEqual(response_body["error"],
-                         "Failed to create despatch advice")
+        self.assertEqual(response_body["error"], "Failed to create despatch advice")
 
         mock_db_connect.assert_called_once()
         mock_get_order.assert_called_once()
@@ -337,10 +329,10 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
     # New tests for validate_despatch_advice
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
     async def test_validate_despatch_advice_invalid_xml(self, mock_get_despatch):
-    # Create a despatch with invalid XML
+        # Create a despatch with invalid XML
         invalid_despatch = self.valid_despatch_data.copy()
         invalid_despatch["XMLData"] = "<invalid>XML<missing-close-tag>"
-    
+
         mock_get_despatch.return_value = invalid_despatch
 
         result = await validate_despatch_advice("D-12345678")
@@ -349,7 +341,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertIn("Server error", response_body["error"])
-    
+
         mock_get_despatch.assert_called_once_with("D-12345678")
 
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
@@ -363,11 +355,13 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertEqual(response_body["error"], "Despatch Advice not found")
-        
+
         mock_get_despatch.assert_called_once_with("D-NONEXISTENT")
 
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
-    async def test_validate_despatch_advice_missing_required_elements(self, mock_get_despatch):
+    async def test_validate_despatch_advice_missing_required_elements(
+        self, mock_get_despatch
+    ):
         # Create a despatch with XML missing required elements
         incomplete_xml = """<?xml version="1.0" encoding="UTF-8"?>
         <DespatchAdvice
@@ -377,10 +371,10 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
             <!-- Missing ID and IssueDate -->
             <cbc:Note>Test note</cbc:Note>
         </DespatchAdvice>"""
-        
+
         incomplete_despatch = self.valid_despatch_data.copy()
         incomplete_despatch["XMLData"] = incomplete_xml
-        
+
         mock_get_despatch.return_value = incomplete_despatch
 
         result = await validate_despatch_advice("D-12345678")
@@ -390,11 +384,13 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response_body["validation_status"], "Invalid")
         self.assertIn("issues", response_body)
         self.assertGreaterEqual(len(response_body["issues"]), 1)
-        
+
         mock_get_despatch.assert_called_once_with("D-12345678")
 
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
-    async def test_validate_despatch_advice_missing_recommended_elements(self, mock_get_despatch):
+    async def test_validate_despatch_advice_missing_recommended_elements(
+        self, mock_get_despatch
+    ):
         # XML with required elements but missing recommended ones
         minimal_xml = """<?xml version="1.0" encoding="UTF-8"?>
         <DespatchAdvice
@@ -405,10 +401,10 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
             <cbc:IssueDate>2025-03-16</cbc:IssueDate>
             <!-- Missing recommended elements: DespatchSupplierParty, DeliveryCustomerParty, Shipment -->
         </DespatchAdvice>"""
-        
+
         minimal_despatch = self.valid_despatch_data.copy()
         minimal_despatch["XMLData"] = minimal_xml
-        
+
         mock_get_despatch.return_value = minimal_despatch
 
         result = await validate_despatch_advice("D-12345678")
@@ -419,7 +415,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("issues", response_body)
         self.assertIn("warnings", response_body)
         self.assertGreaterEqual(len(response_body["warnings"]), 1)
-        
+
         mock_get_despatch.assert_called_once_with("D-12345678")
 
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
@@ -432,7 +428,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertIn("Server error", response_body["error"])
-        
+
         mock_get_despatch.assert_called_once_with("D-12345678")
 
     # Tests for get_despatch_xml
@@ -445,7 +441,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["statusCode"], 200)
         self.assertEqual(result["headers"]["Content-Type"], "application/xml")
         self.assertEqual(result["body"], self.sample_xml)
-        
+
         mock_get_despatch.assert_called_once_with("D-12345678")
 
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
@@ -458,7 +454,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertEqual(response_body["error"], "Despatch Advice not found")
-        
+
         mock_get_despatch.assert_called_once_with("D-NONEXISTENT")
 
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
@@ -471,7 +467,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertIn("Server error", response_body["error"])
-        
+
         mock_get_despatch.assert_called_once_with("D-12345678")
 
     # Tests for update_despatch_advice
@@ -485,15 +481,12 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         mock_now = MagicMock()
         mock_now.isoformat.return_value = "2025-03-16T11:00:00"
         mock_datetime.now.return_value = mock_now
-        
+
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_despatch.return_value = self.valid_despatch_data
         mock_update_document.return_value = True
-        
-        update_body = {
-            "xml": self.sample_xml,
-            "status": "Completed"
-        }
+
+        update_body = {"xml": self.sample_xml, "status": "Completed"}
 
         result = await update_despatch_advice("D-12345678", update_body)
 
@@ -501,12 +494,12 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertEqual(response_body["despatch_id"], "D-12345678")
         self.assertEqual(response_body["status"], "Updated")
-        
+
         mock_db_connect.assert_called_once()
         mock_get_despatch.assert_called_once_with("D-12345678")
         mock_update_document.assert_called_once()
         self.client.close.assert_called_once()
-        
+
         # Verify update data contains correct fields
         update_data = mock_update_document.call_args[0][1]
         self.assertEqual(update_data["XMLData"], self.sample_xml)
@@ -529,7 +522,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertIn("missing xml field", response_body["error"])
-        
+
         mock_db_connect.assert_not_called()
         mock_get_despatch.assert_not_called()
 
@@ -540,11 +533,8 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
     ):
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_despatch.return_value = None
-        
-        update_body = {
-            "xml": self.sample_xml,
-            "status": "Completed"
-        }
+
+        update_body = {"xml": self.sample_xml, "status": "Completed"}
 
         result = await update_despatch_advice("D-NONEXISTENT", update_body)
 
@@ -552,7 +542,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertEqual(response_body["error"], "Despatch Advice not found")
-        
+
         mock_db_connect.assert_called_once()
         mock_get_despatch.assert_called_once_with("D-NONEXISTENT")
         self.client.close.assert_called_once()
@@ -564,11 +554,8 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
     ):
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_despatch.return_value = self.valid_despatch_data
-        
-        update_body = {
-            "xml": "<invalid>XML<missing-close-tag>",
-            "status": "Completed"
-        }
+
+        update_body = {"xml": "<invalid>XML<missing-close-tag>", "status": "Completed"}
 
         result = await update_despatch_advice("D-12345678", update_body)
 
@@ -576,10 +563,11 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertIn("Invalid XML", response_body["error"])
-        
+
         mock_db_connect.assert_called_once()
         mock_get_despatch.assert_called_once_with("D-12345678")
         self.client.close.assert_called_once()
+
     @patch("src.despatch.despatchCreate.dbConnect", new_callable=AsyncMock)
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
     @patch("src.despatch.despatchCreate.updateDocument", new_callable=AsyncMock)
@@ -589,11 +577,8 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_despatch.return_value = self.valid_despatch_data
         mock_update_document.return_value = False  # Indicate update failure
-        
-        update_body = {
-            "xml": self.sample_xml,
-            "status": "Completed"
-        }
+
+        update_body = {"xml": self.sample_xml, "status": "Completed"}
 
         result = await update_despatch_advice("D-12345678", update_body)
 
@@ -601,7 +586,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertEqual(response_body["error"], "Failed to update despatch advice")
-        
+
         mock_db_connect.assert_called_once()
         mock_get_despatch.assert_called_once_with("D-12345678")
         mock_update_document.assert_called_once()
@@ -613,11 +598,8 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         self, mock_get_despatch, mock_db_connect
     ):
         mock_db_connect.side_effect = Exception("Test database exception")
-        
-        update_body = {
-            "xml": self.sample_xml,
-            "status": "Completed"
-        }
+
+        update_body = {"xml": self.sample_xml, "status": "Completed"}
 
         result = await update_despatch_advice("D-12345678", update_body)
 
@@ -625,7 +607,7 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertIn("Server error", response_body["error"])
-        
+
         mock_db_connect.assert_called_once()
         mock_get_despatch.assert_not_called()
 
@@ -638,14 +620,14 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_despatch.return_value = self.valid_despatch_data
         mock_delete_document.return_value = True
-        
+
         result = await delete_despatch_advice("D-12345678")
 
         self.assertEqual(result["statusCode"], 200)
         response_body = json.loads(result["body"])
         self.assertEqual(response_body["despatch_id"], "D-12345678")
         self.assertEqual(response_body["status"], "Deleted")
-        
+
         mock_db_connect.assert_called_once()
         mock_get_despatch.assert_called_once_with("D-12345678")
         mock_delete_document.assert_called_once_with("D-12345678", self.db)
@@ -658,14 +640,14 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
     ):
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_despatch.return_value = None
-        
+
         result = await delete_despatch_advice("D-NONEXISTENT")
 
         self.assertEqual(result["statusCode"], 404)
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertEqual(response_body["error"], "Despatch Advice not found")
-        
+
         mock_db_connect.assert_called_once()
         mock_get_despatch.assert_called_once_with("D-NONEXISTENT")
         self.client.close.assert_called_once()
@@ -679,14 +661,14 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         mock_db_connect.return_value = (self.client, self.db)
         mock_get_despatch.return_value = self.valid_despatch_data
         mock_delete_document.return_value = False  # Indicate delete failure
-        
+
         result = await delete_despatch_advice("D-12345678")
 
         self.assertEqual(result["statusCode"], 500)
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertEqual(response_body["error"], "Failed to delete despatch advice")
-        
+
         mock_db_connect.assert_called_once()
         mock_get_despatch.assert_called_once_with("D-12345678")
         mock_delete_document.assert_called_once()
@@ -698,14 +680,14 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         self, mock_get_despatch, mock_db_connect
     ):
         mock_db_connect.side_effect = Exception("Test database exception")
-        
+
         result = await delete_despatch_advice("D-12345678")
 
         self.assertEqual(result["statusCode"], 500)
         response_body = json.loads(result["body"])
         self.assertIn("error", response_body)
         self.assertIn("Server error", response_body["error"])
-        
+
         mock_db_connect.assert_called_once()
         mock_get_despatch.assert_not_called()
 
