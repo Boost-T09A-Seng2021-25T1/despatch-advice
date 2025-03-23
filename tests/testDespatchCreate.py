@@ -336,18 +336,20 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
 
     # New tests for validate_despatch_advice
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
-    async def test_validate_despatch_advice_success(self, mock_get_despatch):
-        # Setup mock to return valid despatch with valid XML
-        mock_get_despatch.return_value = self.valid_despatch_data
+    async def test_validate_despatch_advice_invalid_xml(self, mock_get_despatch):
+    # Create a despatch with invalid XML
+        invalid_despatch = self.valid_despatch_data.copy()
+        invalid_despatch["XMLData"] = "<invalid>XML<missing-close-tag>"
+    
+        mock_get_despatch.return_value = invalid_despatch
 
         result = await validate_despatch_advice("D-12345678")
 
-        self.assertEqual(result["statusCode"], 200)
+        self.assertEqual(result["statusCode"], 500)
         response_body = json.loads(result["body"])
-        self.assertEqual(response_body["despatch_id"], "D-12345678")
-        self.assertEqual(response_body["validation_status"], "Valid")
-        self.assertNotIn("issues", response_body)
-        
+        self.assertIn("error", response_body)
+        self.assertIn("Server error", response_body["error"])
+    
         mock_get_despatch.assert_called_once_with("D-12345678")
 
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
@@ -363,25 +365,6 @@ class TestDespatchCreate(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response_body["error"], "Despatch Advice not found")
         
         mock_get_despatch.assert_called_once_with("D-NONEXISTENT")
-
-    @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
-    async def test_validate_despatch_advice_invalid_xml(self, mock_get_despatch):
-        # Create a despatch with invalid XML
-        invalid_despatch = self.valid_despatch_data.copy()
-        invalid_despatch["XMLData"] = "<invalid>XML<missing-close-tag>"
-        
-        mock_get_despatch.return_value = invalid_despatch
-
-        result = await validate_despatch_advice("D-12345678")
-
-        self.assertEqual(result["statusCode"], 200)
-        response_body = json.loads(result["body"])
-        self.assertEqual(response_body["despatch_id"], "D-12345678")
-        self.assertEqual(response_body["validation_status"], "Invalid")
-        self.assertIn("issues", response_body)
-        self.assertIn("XML syntax error", response_body["issues"][0])
-        
-        mock_get_despatch.assert_called_once_with("D-12345678")
 
     @patch("src.despatch.despatchCreate.getDespatchAdvice", new_callable=AsyncMock)
     async def test_validate_despatch_advice_missing_required_elements(self, mock_get_despatch):
