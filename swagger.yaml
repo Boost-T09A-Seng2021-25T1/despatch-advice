@@ -68,7 +68,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderReference'
+                $ref: '#/components/schemas/orderReference'
         '422':
           description: Validation error
           content:

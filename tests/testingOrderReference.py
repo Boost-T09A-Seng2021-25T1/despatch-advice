@@ -8,7 +8,7 @@ import copy
 # Add the project root to the path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.despatch.orderReference import (
+from src.despatch.OrderReference import (
     OrderNotFoundError,
     InvalidOrderReferenceError,
     createOrderReference,
@@ -49,7 +49,7 @@ class TestOrderReferenceAdditional(unittest.IsolatedAsyncioTestCase):
         }
     
     # Test the actual deepcopy operation
-    @patch('src.despatch.orderReference.copy.deepcopy')
+    @patch('src.despatch.OrderReference.copy.deepcopy')
     async def test_order_reference_uses_deepcopy(self, mock_deepcopy):
         """Test that createOrderReference uses copy.deepcopy."""
         existing_order = {
@@ -110,7 +110,7 @@ class TestOrderReferenceAdditional(unittest.IsolatedAsyncioTestCase):
             await createOrderReference(self.valid_order_id, self.valid_sales_order_id, None)
     
     # Test the database connection functions
-    @patch('src.despatch.orderReference.motor.motor_asyncio.AsyncIOMotorClient')
+    @patch('src.despatch.OrderReference.motor.motor_asyncio.AsyncIOMotorClient')
     async def test_db_connect(self, mock_motor_client):
         """Test dbConnect function."""
         mock_client = MagicMock()
@@ -124,7 +124,7 @@ class TestOrderReferenceAdditional(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(db, mock_db)
         mock_motor_client.assert_called_once()
     
-    @patch('src.despatch.orderReference.db.admin.command')
+    @patch('src.despatch.OrderReference.db.admin.command')
     async def test_connect_to_mongo_success(self, mock_command):
         """Test connectToMongo success case."""
         mock_db = MagicMock()
@@ -134,7 +134,7 @@ class TestOrderReferenceAdditional(unittest.IsolatedAsyncioTestCase):
         
         mock_db.admin.command.assert_called_once_with('ping')
     
-    @patch('src.despatch.orderReference.db.admin.command')
+    @patch('src.despatch.OrderReference.db.admin.command')
     async def test_connect_to_mongo_failure(self, mock_command):
         """Test connectToMongo failure case."""
         mock_db = MagicMock()
