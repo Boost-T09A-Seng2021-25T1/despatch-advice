@@ -25,7 +25,6 @@ class TestCreateOrderReference(unittest.IsolatedAsyncioTestCase):
         # Insert the test order into the database
         self.valid_order_id = self.test_data["valid_order_id"]
         self.valid_sales_order_id = self.test_data["valid_sales_order_id"]
-
         # Insert the order into the database
         await self.orders.insert_one({
             "ID": self.valid_order_id,
