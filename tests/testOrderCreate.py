@@ -111,9 +111,8 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         mock_xml_to_json.assert_called_once_with(self.valid_order_xml)
 
     @patch("src.despatch.orderCreate.xml_to_json")
-    async def test_validate_order_document_xml_parsing_error(
-        self, mock_xml_to_json
-    ):
+    async def test_validate_order_document_xml_parsing_error(self,
+                                                             mock_xml_to_json):
         mock_xml_to_json.side_effect = ValueError("XML parsing error")
 
         is_valid, issues, document = await validate_order_document(
@@ -134,7 +133,7 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         }
 
         is_valid, issues, document = await validate_order_document(
-            invalid_order)
+                                                                invalid_order)
 
         self.assertFalse(is_valid)
         self.assertGreater(len(issues), 0)
@@ -157,7 +156,7 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         }
 
         is_valid, issues, document = await validate_order_document(
-            invalid_order)
+                                                                invalid_order)
 
         self.assertFalse(is_valid)
         self.assertGreater(len(issues), 0)
@@ -190,8 +189,9 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         response_body = json.loads(result["body"])
         self.assertIn("order_id", response_body)
         self.assertIn("uuid", response_body)
-        self.assertEqual(response_body["status"], "Order Created")
-
+        self.assertEqual(response_body["status"],
+                         "Order Created"
+                         )
         mock_db_connect.assert_called_once()
         mock_add_order.assert_called_once()
         self.assertEqual(
@@ -347,6 +347,193 @@ class TestOrderCreate(unittest.IsolatedAsyncioTestCase):
         mock_db_connect.assert_called_once()
         mock_get_order.assert_called_once_with("ORD-12345", self.db)
         self.client.close.assert_called_once()
+
+    # Additional test cases to improve coverage
+
+    async def test_validate_order_document_invalid_copy_indicator(self):
+        """Test validation with an invalid CopyIndicator."""
+        invalid_order = self.valid_order_json.copy()
+        invalid_order["CopyIndicator"] = "True"  # String instead of boolean
+
+        is_valid, issues, document = await validate_order_document(
+            invalid_order
+        )
+
+        self.assertFalse(is_valid)
+        self.assertIn("CopyIndicator must be a boolean value", issues)
+        self.assertEqual(document, invalid_order)
+
+    async def test_validate_order_document_invalid_status_code(self):
+        """Test validation with an invalid DocumentStatusCode."""
+        invalid_order = self.valid_order_json.copy()
+        invalid_order["DocumentStatusCode"] = "Invalid"
+
+        is_valid, issues, document = await validate_order_document(
+            invalid_order
+        )
+
+        self.assertFalse(is_valid)
+        self.assertIn("Invalid DocumentStatusCode", issues)
+        self.assertEqual(document, invalid_order)
+
+    async def test_validate_order_document_general_exception(self):
+        """Test validation with a general exception."""
+        with patch(
+            "src.despatch.orderCreate.validate_order_document",
+            side_effect=Exception("Test exception"),
+        ):
+            try:
+                # Call directly, not through the patched function
+                is_valid, issues, document = await validate_order_document(
+                    None
+                )
+
+                # Check that exception was caught and handled
+                self.assertFalse(is_valid)
+                self.assertGreaterEqual(len(issues), 1)
+                self.assertIn("Validation error", issues[0])
+                self.assertIsNone(document)
+            except Exception:
+                self.fail(
+                    "validate_order_document didn't handle the exception"
+                )
+
+    @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
+    @patch("src.despatch.orderCreate.addOrder", new_callable=AsyncMock)
+    async def test_create_order_database_failure(
+        self, mock_add_order, mock_db_connect
+    ):
+        """Test create_order with a database failure."""
+        valid_event_body = {
+            "customer_id": "CUST-001",
+            "items": [
+                {"item_id": "ITEM-001", "quantity": 5, "price": 10.5},
+            ],
+        }
+
+        mock_db_connect.return_value = (self.client, self.db)
+        mock_add_order.return_value = None  # Simulate failed insert
+
+        result = await create_order(valid_event_body)
+
+        self.assertEqual(result["statusCode"], 500)
+        response_body = json.loads(result["body"])
+        self.assertIn("error", response_body)
+        self.assertEqual(response_body["error"], "Failed to create order")
+
+        mock_db_connect.assert_called_once()
+        mock_add_order.assert_called_once()
+        self.client.close.assert_called_once()
+
+    @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
+    async def test_create_order_exception(self, mock_db_connect):
+        """Test create_order with an exception."""
+        valid_event_body = {
+            "customer_id": "CUST-001",
+            "items": [
+                {"item_id": "ITEM-001", "quantity": 5, "price": 10.5},
+            ],
+        }
+
+        mock_db_connect.side_effect = Exception("Test database exception")
+
+        result = await create_order(valid_event_body)
+
+        self.assertEqual(result["statusCode"], 500)
+        response_body = json.loads(result["body"])
+        self.assertIn("error", response_body)
+        self.assertIn("Server error", response_body["error"])
+
+        mock_db_connect.assert_called_once()
+
+    @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
+    @patch("src.despatch.orderCreate.getOrderInfo", new_callable=AsyncMock)
+    async def test_validate_order_invalid(
+        self, mock_get_order, mock_db_connect
+    ):
+        """Test validate_order with an invalid order."""
+        mock_db_connect.return_value = (self.client, self.db)
+
+        invalid_order = {
+            "OrderID": "ORD-12345",
+            "UUID": "550e8400-e29b-41d4-a716-446655440000",
+            # Missing CustomerID
+            "Items": [
+                # Missing item_id
+                {"quantity": -5, "price": -10.5},
+            ],
+            "Status": "Created",
+        }
+
+        mock_get_order.return_value = invalid_order
+
+        result = await validate_order("ORD-12345")
+
+        self.assertEqual(result["statusCode"], 200)
+        response_body = json.loads(result["body"])
+        self.assertEqual(response_body["order_id"], "ORD-12345")
+        self.assertEqual(response_body["validation_status"], "Invalid")
+        self.assertGreaterEqual(len(response_body["issues"]), 3)
+        self.assertIn("Missing customer ID", response_body["issues"])
+        self.assertIn("Item 0 missing item_id", response_body["issues"])
+        self.assertIn("Item 0 has invalid quantity", response_body["issues"])
+        self.assertIn("Item 0 has invalid price", response_body["issues"])
+
+        mock_db_connect.assert_called_once()
+        mock_get_order.assert_called_once_with("ORD-12345", self.db)
+        self.client.close.assert_called_once()
+
+    @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
+    @patch("src.despatch.orderCreate.getOrderInfo", new_callable=AsyncMock)
+    async def test_validate_order_exception(
+        self, mock_get_order, mock_db_connect
+    ):
+        """Test validate_order with an exception."""
+        mock_db_connect.side_effect = Exception("Test database exception")
+
+        result = await validate_order("ORD-12345")
+
+        self.assertEqual(result["statusCode"], 500)
+        response_body = json.loads(result["body"])
+        self.assertIn("error", response_body)
+        self.assertIn("Server error", response_body["error"])
+
+        mock_db_connect.assert_called_once()
+        mock_get_order.assert_not_called()
+
+    @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
+    @patch("src.despatch.orderCreate.getOrderInfo", new_callable=AsyncMock)
+    async def test_get_order_exception(self, mock_get_order, mock_db_connect):
+        """Test get_order with an exception."""
+        mock_db_connect.side_effect = Exception("Test database exception")
+
+        result = await get_order("ORD-12345")
+
+        self.assertEqual(result["statusCode"], 500)
+        response_body = json.loads(result["body"])
+        self.assertIn("error", response_body)
+        self.assertIn("Server error", response_body["error"])
+
+        mock_db_connect.assert_called_once()
+        mock_get_order.assert_not_called()
+
+    @patch("src.despatch.orderCreate.dbConnect", new_callable=AsyncMock)
+    @patch("src.despatch.orderCreate.getOrderInfo", new_callable=AsyncMock)
+    async def test_check_stock_exception(
+        self, mock_get_order, mock_db_connect
+    ):
+        """Test check_stock with an exception."""
+        mock_db_connect.side_effect = Exception("Test database exception")
+
+        result = await check_stock("ORD-12345")
+
+        self.assertEqual(result["statusCode"], 500)
+        response_body = json.loads(result["body"])
+        self.assertIn("error", response_body)
+        self.assertIn("Server error", response_body["error"])
+
+        mock_db_connect.assert_called_once()
+        mock_get_order.assert_not_called()
 
 
 if __name__ == "__main__":
