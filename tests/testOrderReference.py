@@ -49,33 +49,34 @@ class TestCreateOrderReference(unittest.IsolatedAsyncioTestCase):
         """Test successful creation of OrderReference."""
         result = await create_order_reference(
             self.valid_order_id, self.valid_sales_order_id, self.orders)
-        
+
         # Verify the returned document
         self.assertIsInstance(result, dict)
         self.assertEqual(result["ID"], self.valid_order_id)
         self.assertEqual(result["SalesOrderID"], self.valid_sales_order_id)
-        self.assertEqual(result["UUID"], "existing-uuid")  # Existing field preserved
-        self.assertEqual(result["IssueDate"], "2023-01-01")  # Existing field preserved
-        self.assertEqual(result["AdditionalField"], "should-be-preserved")  # Additional field preserved
+        self.assertEqual(result["UUID"], "existing-uuid")
+        self.assertEqual(result["IssueDate"], "2023-01-01")
+        self.assertEqual(result["AdditionalField"], "should-be-preserved")
 
     async def test_order_reference_fields_initialized_correctly(self):
         """Ensure existing fields are preserved after creation."""
         result = await create_order_reference(
             self.valid_order_id, self.valid_sales_order_id, self.orders)
-        
+
         self.assertEqual(result["UUID"], "existing-uuid")
         self.assertEqual(result["IssueDate"], "2023-01-01")
 
     async def test_id_and_sales_order_id_persisted(self):
-        """Ensure ID and SalesOrderID are correctly set in returned document."""
+        """Ensure ID and SalesOrderID are
+         correctly set in returned document."""
         result = await create_order_reference(
             self.valid_order_id, self.valid_sales_order_id, self.orders)
-        
         self.assertEqual(result["ID"], self.valid_order_id)
         self.assertEqual(result["SalesOrderID"], self.valid_sales_order_id)
 
     async def test_create_multiple_order_references(self):
-        """Test creating multiple order references doesn't override existing ones."""
+        """Test creating multiple order references
+         doesn't override existing ones."""
         new_order_id = self.test_data["new_order_id"]
         new_sales_order_id = self.test_data["new_sales_order_id"]
 
@@ -94,9 +95,9 @@ class TestCreateOrderReference(unittest.IsolatedAsyncioTestCase):
 
         # Verify the returned document
         self.assertEqual(result["ID"], new_order_id)
-        self.assertEqual(result["SalesOrderID"], new_sales_order_id)  # Updated field
+        self.assertEqual(result["SalesOrderID"], new_sales_order_id)
         self.assertEqual(result["UUID"], "original-uuid")  # Preserved field
-        self.assertEqual(result["CustomField"], "custom-value")  # Additional preserved field
+        self.assertEqual(result["CustomField"], "custom-value")
 
     # ============================================
     # Failing Tests

@@ -1,5 +1,4 @@
 import motor.motor_asyncio
-import asyncio
 from dotenv import load_dotenv
 import os
 from typing import Dict, Any
@@ -17,18 +16,25 @@ load_dotenv(dotenv_path=os.path.join(
 )
 
 # MongoDB configuration
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv://ched:Archimedes24%3B@boostt09acluster.r4oz2.mongodb.net/?retryWrites=true&w=majority&appName=BoostT09ACluster")
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv:"
+                        "//ched:Archimedes24%3B@boostt09acluster."
+                        "r4oz2.mongodb.net/?retryWrites=true&w="
+                        "majority&appName=BoostT09ACluster")
 DATABASE_NAME = "ubl_docs"
+
 
 class OrderNotFoundError(Exception):
     """Raised when an order is not found in the database."""
     pass
 
+
 class InvalidOrderReferenceError(Exception):
     """Raised when invalid arguments are provided."""
     pass
 
-async def get_db_connection() -> tuple[motor.motor_asyncio.AsyncIOMotorClient, Any]:
+
+async def get_db_connection() -> tuple[motor.motor_asyncio.
+                                       AsyncIOMotorClient, Any]:
     """Establish MongoDB connection."""
     client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
     db = client[DATABASE_NAME]
@@ -40,22 +46,23 @@ async def get_db_connection() -> tuple[motor.motor_asyncio.AsyncIOMotorClient, A
         logger.error(f"Connection failed: {e}")
         raise
 
+
 async def create_order_reference(
-    order_id: str, 
-    sales_order_id: str, 
+    order_id: str,
+    sales_order_id: str,
     collection: motor.motor_asyncio.AsyncIOMotorCollection
 ) -> Dict[str, Any]:
     """
     Creates/updates an OrderReference and returns the complete document.
-    
+
     Args:
         order_id: The order ID
         sales_order_id: The sales order ID
         collection: MongoDB collection instance
-    
+
     Returns:
         The complete order reference document
-    
+
     Raises:
         InvalidOrderReferenceError: If invalid arguments are provided
         OrderNotFoundError: If order doesn't exist
