@@ -23,7 +23,8 @@ class TestShipmentCreation(unittest.IsolatedAsyncioTestCase):
         self.client, self.db = await dbConnect()
         self.shipments = self.db["shipments"]
         await clearDb(self.db)  # Clear the database before each test
-        await setup_indexes()  # Ensure indexes are set up
+        index_result = await setup_indexes()  # Ensure indexes are set up
+        self.assertTrue(index_result["success"], "Index setup failed")
 
         # Load test data from JSON file
         with open(filePath, "r") as file:
@@ -50,25 +51,30 @@ class TestShipmentCreation(unittest.IsolatedAsyncioTestCase):
             result["success"], f"Expected success but got: {result}"
         )
         self.assertIn("inserted_id", result)
+        self.assertIn("document", result)
+        self.assertEqual(result["document"]["ID"], self.valid_shipment_id)
+        self.assertTrue(result["operation_details"]["acknowledged"])
 
     async def test_create_shipment_duplicate_id(self):
         """Test creating a shipment with a duplicate ID."""
         # First insertion (should succeed)
-        result = await create_shipment(
+        first_result = await create_shipment(
             self.valid_shipment_id, self.valid_payload
         )
-        self.assertTrue(
-            result["success"], f"Expected success but got: {result}"
-        )
+        self.assertTrue(first_result["success"])
 
         # Second insertion (should fail due to duplicate ID)
-        result = await create_shipment(
+        duplicate_result = await create_shipment(
             self.valid_shipment_id, self.valid_payload
         )
-        self.assertFalse(
-            result["success"], f"Expected failure but got: {result}"
+        self.assertFalse(duplicate_result["success"])
+        self.assertEqual(duplicate_result["error"], "Duplicate shipment ID")
+        self.assertIn("existing_document", duplicate_result)
+        self.assertEqual(
+            duplicate_result["existing_document"]["ID"],
+            self.valid_shipment_id
         )
-        self.assertEqual(result["error"], "Duplicate shipment ID")
+        self.assertIn("attempted_data", duplicate_result)
 
     async def test_create_shipment_invalid_id_format(self):
         """Test creating a shipment with an invalid ID format."""
@@ -118,10 +124,20 @@ class TestShipmentCreation(unittest.IsolatedAsyncioTestCase):
         result = await create_shipment(
             self.valid_shipment_id, large_payload
         )
-        self.assertTrue(
-            result["success"], f"Expected success but got: {result}"
-        )
+        self.assertTrue(result["success"])
         self.assertIn("inserted_id", result)
+        self.assertIn("document", result)
+        self.assertEqual(
+            result["document"]["AdditionalData"]["LargeField"],
+            "A" * 1000000
+        )
+
+    async def test_setup_indexes(self):
+        """Test that indexes are properly set up."""
+        result = await setup_indexes()
+        self.assertTrue(result["success"])
+        self.assertEqual(result["index_name"], "ID")
+        self.assertIn("operation_result", result)
 
 
 if __name__ == "__main__":
