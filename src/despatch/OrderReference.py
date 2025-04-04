@@ -1,53 +1,26 @@
 import motor.motor_asyncio
-import asyncio
 from dotenv import load_dotenv
 import os
-import copy
+from typing import Dict, Any
+import logging
 
-# Construct the absolute path for environment variable loading
-dirPath = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), "..", "config"
-))
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
-load_dotenv(
-    dotenv_path=os.path.join(dirPath, ".env")
+load_dotenv(dotenv_path=os.path.join(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config")),
+    ".env"
+    )
 )
 
-# MongoDB URI
-uri = os.getenv("MDB_URI") or os.getenv("MONGO_URI",
-                                        "mongodb+srv://ched:Archimedes24%3B@boostt09acluster.r4oz2.\
-                                            mongodb.net/?retryWrites=true&w="
-                                        "majority&appName=\
-                                                     BoostT09ACluster")
-
-# ==================================
-# Database Connection and Utilities
-# ==================================
-
-
-async def connectToMongo(db):
-    """
-    Test the MongoDB connection by pinging the database.
-    """
-    try:
-        await db.admin.command('ping')
-        print("Successfully connected to MongoDB!")
-    except Exception as error:
-        print(f"Connection failed: {error}")
-
-
-async def dbConnect():
-    """
-    Connect to the MongoDB database and return the client and database objects.
-    """
-    client = motor.motor_asyncio.AsyncIOMotorClient(uri)
-    db = client["ubl_docs"]
-    return client, db
-
-# ==================================
-# Custom Exceptions
-# ==================================
+# MongoDB configuration
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv:"
+                        "//ched:Archimedes24%3B@boostt09acluster."
+                        "r4oz2.mongodb.net/?retryWrites=true&w="
+                        "majority&appName=BoostT09ACluster")
+DATABASE_NAME = "ubl_docs"
 
 
 class OrderNotFoundError(Exception):
@@ -56,60 +29,68 @@ class OrderNotFoundError(Exception):
 
 
 class InvalidOrderReferenceError(Exception):
-    """Raised when invalid arguments are
-        provided for creating an OrderReference."""
+    """Raised when invalid arguments are provided."""
     pass
 
-# ==================================
-# Business Logic
-# ==================================
+
+async def get_db_connection() -> tuple[motor.motor_asyncio.
+                                       AsyncIOMotorClient, Any]:
+    """Establish MongoDB connection."""
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
+    db = client[DATABASE_NAME]
+    try:
+        await client.admin.command('ping')
+        logger.info("Connected to MongoDB")
+        return client, db
+    except Exception as e:
+        logger.error(f"Connection failed: {e}")
+        raise
 
 
-async def createOrderReference(orderId: str, salesOrderId: str, orders):
+async def create_order_reference(
+    order_id: str,
+    sales_order_id: str,
+    collection: motor.motor_asyncio.AsyncIOMotorCollection
+) -> Dict[str, Any]:
     """
-    Creates an OrderReference stub object in the database.
-    Initializes UUID and IssueDate as empty and assigns ID and SalesOrderID.
+    Creates/updates an OrderReference and returns the complete document.
 
     Args:
-        orderId (str): The ID of the order.
-        salesOrderId (str): The ID of the sales order.
-        orders: The MongoDB collection for orders.
+        order_id: The order ID
+        sales_order_id: The sales order ID
+        collection: MongoDB collection instance
 
     Returns:
-        None
+        The complete order reference document
 
     Raises:
-        InvalidOrderReferenceError: If the arguments are of invalid types.
-        OrderNotFoundError: If the order is not found in the database.
+        InvalidOrderReferenceError: If invalid arguments are provided
+        OrderNotFoundError: If order doesn't exist
     """
-    if not isinstance(orderId, str) or not isinstance(salesOrderId, str):
-        raise InvalidOrderReferenceError("Invalid argument types")
+    if not isinstance(order_id, str) or not isinstance(sales_order_id, str):
+        raise InvalidOrderReferenceError("IDs must be strings")
 
-    existing_order = await orders.find_one({"ID": orderId})
-
+    # Check if order exists
+    existing_order = await collection.find_one({"ID": order_id})
     if not existing_order:
-        raise OrderNotFoundError("Order not found")
+        raise OrderNotFoundError(f"Order {order_id} not found")
 
-    # Create a deep copy of the existing order (if needed)
-    order_reference = copy.deepcopy(existing_order)
-    order_reference.update({
-        "ID": orderId,
-        "SalesOrderID": salesOrderId,
-        "UUID": "",
-        "IssueDate": ""
-    })
+    # Create update document
+    update_data = {
+        "$set": {
+            "ID": order_id,
+            "SalesOrderID": sales_order_id,
+            "UUID": existing_order.get("UUID", ""),
+            "IssueDate": existing_order.get("IssueDate", "")
+        }
+    }
 
-    await orders.update_one({"ID": orderId},
-                            {"$set": order_reference}, upsert=True)
-    return None
+    # Perform upsert and return the document
+    result = await collection.find_one_and_update(
+        {"ID": order_id},
+        update_data,
+        upsert=True,
+        return_document=True
+    )
 
-# ==================================
-# Main Execution
-# ==================================
-
-if __name__ == "__main__":
-    # Connect to the database
-    client, db = asyncio.run(dbConnect())
-
-    # Test the connection
-    asyncio.run(connectToMongo(db))
+    return result

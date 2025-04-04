@@ -2,7 +2,7 @@ import unittest
 from src.mongodb import dbConnect, clearDb
 from src.despatch.OrderReference\
     import OrderNotFoundError, InvalidOrderReferenceError, \
-    createOrderReference
+    create_order_reference
 import os
 import json
 
@@ -30,8 +30,9 @@ class TestCreateOrderReference(unittest.IsolatedAsyncioTestCase):
         await self.orders.insert_one({
             "ID": self.valid_order_id,
             "SalesOrderID": self.valid_sales_order_id,
-            "UUID": "",
-            "IssueDate": ""
+            "UUID": "existing-uuid",
+            "IssueDate": "2023-01-01",
+            "AdditionalField": "should-be-preserved"
         })
 
     async def asyncTearDown(self):
@@ -46,49 +47,57 @@ class TestCreateOrderReference(unittest.IsolatedAsyncioTestCase):
 
     async def test_create_order_reference_success(self):
         """Test successful creation of OrderReference."""
-        result = await createOrderReference(
+        result = await create_order_reference(
             self.valid_order_id, self.valid_sales_order_id, self.orders)
-        self.assertIsNone(result)
 
-        # Verify the order reference was created
-        order_ref = await self.orders.find_one({"ID": self.valid_order_id})
-        self.assertEqual(order_ref["ID"], self.valid_order_id)
-        self.assertEqual(order_ref["SalesOrderID"], self.valid_sales_order_id)
+        # Verify the returned document
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["ID"], self.valid_order_id)
+        self.assertEqual(result["SalesOrderID"], self.valid_sales_order_id)
+        self.assertEqual(result["UUID"], "existing-uuid")
+        self.assertEqual(result["IssueDate"], "2023-01-01")
+        self.assertEqual(result["AdditionalField"], "should-be-preserved")
 
     async def test_order_reference_fields_initialized_correctly(self):
-        """Ensure UUID and IssueDate are empty after creation."""
-        order_ref = await self.orders.find_one({"ID": self.valid_order_id})
-        self.assertEqual(order_ref["UUID"], "")
-        self.assertEqual(order_ref["IssueDate"], "")
+        """Ensure existing fields are preserved after creation."""
+        result = await create_order_reference(
+            self.valid_order_id, self.valid_sales_order_id, self.orders)
+
+        self.assertEqual(result["UUID"], "existing-uuid")
+        self.assertEqual(result["IssueDate"], "2023-01-01")
 
     async def test_id_and_sales_order_id_persisted(self):
-        """Ensure ID and SalesOrderID are correctly set."""
-        order_ref = await self.orders.find_one({"ID": self.valid_order_id})
-        self.assertEqual(order_ref["ID"], self.valid_order_id)
-        self.assertEqual(order_ref["SalesOrderID"], self.valid_sales_order_id)
+        """Ensure ID and SalesOrderID are
+         correctly set in returned document."""
+        result = await create_order_reference(
+            self.valid_order_id, self.valid_sales_order_id, self.orders)
+        self.assertEqual(result["ID"], self.valid_order_id)
+        self.assertEqual(result["SalesOrderID"], self.valid_sales_order_id)
 
     async def test_create_multiple_order_references(self):
         """Test creating multiple order references
-        doesn't override existing ones."""
+         doesn't override existing ones."""
         new_order_id = self.test_data["new_order_id"]
         new_sales_order_id = self.test_data["new_sales_order_id"]
 
         # Insert the new order into the database
         await self.orders.insert_one({
             "ID": new_order_id,
-            "SalesOrderID": new_sales_order_id,
-            "UUID": "",
-            "IssueDate": ""
+            "SalesOrderID": "original-sales-id",
+            "UUID": "original-uuid",
+            "IssueDate": "original-date",
+            "CustomField": "custom-value"
         })
 
         # Create the order reference
-        await createOrderReference(new_order_id,
-                                   new_sales_order_id, self.orders)
+        result = await create_order_reference(
+            new_order_id, new_sales_order_id, self.orders)
 
-        # Verify the new order reference
-        new_order_ref = await self.orders.find_one({"ID": new_order_id})
-        self.assertEqual(new_order_ref["ID"], new_order_id)
-        self.assertEqual(new_order_ref["SalesOrderID"], new_sales_order_id)
+        # Verify the returned document
+        self.assertEqual(result["ID"], new_order_id)
+        self.assertEqual(result["SalesOrderID"], new_sales_order_id)
+        self.assertEqual(result["UUID"], "original-uuid")  # Preserved field
+        self.assertEqual(result["CustomField"], "custom-value")
 
     # ============================================
     # Failing Tests
@@ -97,13 +106,15 @@ class TestCreateOrderReference(unittest.IsolatedAsyncioTestCase):
     async def test_create_order_reference_missing_id(self):
         """Test error when OrderId is missing."""
         with self.assertRaises(InvalidOrderReferenceError):
-            await createOrderReference(None,
-                                       self.valid_sales_order_id, self.orders)
+            await create_order_reference(None,
+                                         self.valid_sales_order_id,
+                                         self.orders)
 
     async def test_create_order_reference_missing_sales_order_id(self):
         """Test error when SalesOrderID is missing."""
         with self.assertRaises(InvalidOrderReferenceError):
-            await createOrderReference(self.valid_order_id, None, self.orders)
+            await create_order_reference(self.valid_order_id,
+                                         None, self.orders)
 
     async def test_create_order_reference_nonexistent_order(self):
         """Test 404 error when order does not exist."""
@@ -111,13 +122,14 @@ class TestCreateOrderReference(unittest.IsolatedAsyncioTestCase):
         nonexistent_sales_order_id =\
             self.test_data["nonexistent_sales_order_id"]
         with self.assertRaises(OrderNotFoundError):
-            await createOrderReference(nonexistent_order_id,
-                                       nonexistent_sales_order_id, self.orders)
+            await create_order_reference(nonexistent_order_id,
+                                         nonexistent_sales_order_id,
+                                         self.orders)
 
     async def test_create_order_reference_invalid_types(self):
         """Test 400 error when incorrect types are provided."""
         with self.assertRaises(InvalidOrderReferenceError):
-            await createOrderReference(12345, ["invalid-list"], self.orders)
+            await create_order_reference(12345, ["invalid-list"], self.orders)
 
 
 if __name__ == '__main__':
