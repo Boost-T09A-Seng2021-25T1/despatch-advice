@@ -9,9 +9,11 @@ logger = logging.getLogger(__name__)
 # ==================================
 # Purpose: Ensure a unique index on the shipment ID field.
 # Arguments: None
-# Returns: 
+# Returns:
 #   - dict: Contains success status and index creation details
 # ==================================
+
+
 async def setup_indexes():
     """Ensure a unique index on the shipment ID field."""
     mongoClient, db = await dbConnect()
@@ -45,7 +47,7 @@ async def setup_indexes():
 #   - shipment_id (str): The unique ID of the shipment.
 #   - data (dict): The shipment data to be inserted.
 # Returns:
-#   - dict: Contains success status, inserted document (if successful), and operation details
+#   - dict: Contains success status, inserted document
 # ==================================
 async def create_shipment(shipment_id: str, data: dict):
     # Validate types of shipment_id and data
@@ -63,7 +65,8 @@ async def create_shipment(shipment_id: str, data: dict):
     required_fields = ["ID", "Consignment", "Delivery"]
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
-        raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
+        raise ValueError(f"Missing required fields:\
+                         {', '.join(missing_fields)}")
 
     # Ensure "ID" and "Consignment ID" are both strings
     if not isinstance(data["ID"], str):
@@ -90,10 +93,11 @@ async def create_shipment(shipment_id: str, data: dict):
 
         # Create the new shipment entry
         result = await shipments.insert_one(data)
-        
+
         # Get the full inserted document
-        inserted_document = await shipments.find_one({"_id": result.inserted_id})
-        
+        inserted_document = await shipments.find_one(
+             {"_id": result.inserted_id})
+
         logger.info(f"Inserted shipment with ID: {result.inserted_id}")
         return {
             "success": True,
