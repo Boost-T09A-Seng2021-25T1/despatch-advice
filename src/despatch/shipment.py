@@ -9,7 +9,8 @@ logger = logging.getLogger(__name__)
 # ==================================
 # Purpose: Ensure a unique index on the shipment ID field.
 # Arguments: None
-# Returns: None
+# Returns:
+#   - dict: Contains success status and index creation details
 # ==================================
 
 
@@ -19,11 +20,22 @@ async def setup_indexes():
     shipments = db["shipments"]
 
     try:
-        # Create a unique index on the "ID" field
-        await shipments.create_index("ID", unique=True)
-        logger.info("Created unique index on 'ID' field.")
+        # Create a unique index on the "ID" field and get the result
+        result = await shipments.create_index("ID", unique=True)
+        logger.info(f"Created unique index on 'ID' field. Result: {result}")
+        return {
+            "success": True,
+            "index_name": "ID",
+            "operation_result": result,
+            "message": "Successfully created unique index on 'ID' field"
+        }
     except Exception as e:
         logger.error(f"Failed to create index: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to create index"
+        }
     finally:
         # Close the MongoDB connection
         mongoClient.close()
@@ -35,9 +47,8 @@ async def setup_indexes():
 #   - shipment_id (str): The unique ID of the shipment.
 #   - data (dict): The shipment data to be inserted.
 # Returns:
-#   - dict: A dictionary containing the success status and inserted ID.
+#   - dict: Contains success status, inserted document
 # ==================================
-
 async def create_shipment(shipment_id: str, data: dict):
     # Validate types of shipment_id and data
     if not isinstance(shipment_id, str):
@@ -54,8 +65,8 @@ async def create_shipment(shipment_id: str, data: dict):
     required_fields = ["ID", "Consignment", "Delivery"]
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
-        raise ValueError
-    (f"Missing required fields: {', '.join(missing_fields)}")
+        raise ValueError(f"Missing required fields:\
+                         {', '.join(missing_fields)}")
 
     # Ensure "ID" and "Consignment ID" are both strings
     if not isinstance(data["ID"], str):
@@ -73,16 +84,38 @@ async def create_shipment(shipment_id: str, data: dict):
         existing_shipment = await shipments.find_one({"ID": shipment_id})
         if existing_shipment:
             logger.error(f"Duplicate shipment ID: {shipment_id}")
-            return {"success": False, "error": "Duplicate shipment ID"}
+            return {
+                "success": False,
+                "error": "Duplicate shipment ID",
+                "existing_document": existing_shipment,
+                "attempted_data": data
+            }
 
         # Create the new shipment entry
         result = await shipments.insert_one(data)
+
+        # Get the full inserted document
+        inserted_document = await shipments.find_one(
+             {"_id": result.inserted_id})
+
         logger.info(f"Inserted shipment with ID: {result.inserted_id}")
-        return {"success": True, "inserted_id": str(result.inserted_id)}
+        return {
+            "success": True,
+            "inserted_id": str(result.inserted_id),
+            "document": inserted_document,
+            "operation_details": {
+                "acknowledged": result.acknowledged,
+                "operation_time": getattr(result, 'operation_time', None)
+            }
+        }
 
     except Exception as e:
         logger.error(f"An error occurred while creating shipment: {e}")
-        return {"success": False, "error": str(e)}
+        return {
+            "success": False,
+            "error": str(e),
+            "attempted_data": data
+        }
     finally:
         # Close the MongoDB connection
         mongoClient.close()
