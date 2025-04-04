@@ -8,23 +8,25 @@ from src.despatch.orderCreate import (
     validate_order_document,
     create_order
 )
+from src.despatch.OrderReference import createOrderReference
+
+"""
+Main API endpoint function that coordinates the
+order and despatch creation process
+
+Args:
+    xmlDoc (str): XML string of the order document
+    shipment (dict): Information about shipment details
+    despatch (dict): Information about despatch details
+    supplier (dict): supplier info
+
+Returns:
+    dict: Response containing results of the operations
+"""
 
 
 async def endpointFunc(xmlDoc: str, shipment: dict,
                        despatch: dict, supplier: dict):
-    """
-    Main API endpoint function that coordinates the
-    order and despatch creation process
-
-    Args:
-        xmlDoc (str): XML string of the order document
-        shipment (dict): Information about shipment details
-        despatch (dict): Information about despatch details
-        supplier (dict): supplier info
-
-    Returns:
-        dict: Response containing results of the operations
-    """
 
     if xmlDoc is None or not isinstance(xmlDoc, str):
         raise TypeError("Error: document is invalid.")
@@ -35,7 +37,6 @@ async def endpointFunc(xmlDoc: str, shipment: dict,
     ):
         raise TypeError("Error: invalid shipment or despatch information")
 
-    # if xmlDoc is None or not isinstance(xmlDoc, str):
 
     try:
         (is_valid, validation_issues,
@@ -65,16 +66,24 @@ async def endpointFunc(xmlDoc: str, shipment: dict,
             if order_result.get("statusCode") != 200:
                 return order_result
 
-            # Check if seller is supplier
+            # ============ ORDER REFERENCE =========================
+            # res = await db.orders.find_one({"UUID": orderUUID})
+
+            # ======================================================
+
+
+            # MUST UPDATE SUPPLIER ARGUMENTS AND LOGIC
+            # REPLACE WITH DESPATCH LINE
             sellerIsSupplier = supplier.get("is_seller", True)
 
-            # Call function to handle delivery period requirements
+            # CALL DESPATCH CUSTOMER
+
+            # REPLACE WITH SHIPMENT
             delivery_period_result = process_delivery_period(
                 shipment, order_response.get("order_id")
             )
 
-            # Call function to handle backordering information
-            # This will be implemented when available
+            # REPLACE WITH DESPATCH LINE
             backordering_result = process_backordering(
                 despatch, order_response.get("order_id")
             )
@@ -105,18 +114,12 @@ async def endpointFunc(xmlDoc: str, shipment: dict,
             validation_response = json.loads(validation_result.
                                              get("body", "{}"))
 
+            # call create despatch advice to create the initial section of the DA
+
+
             return {
-                "statusCode": 200,
-                "body": json.dumps(
-                    {
-                        "order": order_response,
-                        "despatch": despatch_response,
-                        "validation": validation_response,
-                        "delivery_period": delivery_period_result,
-                        "backordering": backordering_result,
-                    }
-                ),
             }
+        
         finally:
             client.close()
 
