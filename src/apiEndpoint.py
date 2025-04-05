@@ -94,7 +94,7 @@ async def endpointFunc(xmlDoc: str, shipment: dict,
             # Yousef's part
             # need clarity on shipment id?
             # the return is a dict, need to access the right data
-            shipment = create_shipment(shipment_id, shipment)
+            shipment = create_shipment(shipment_id, shipment).document
 
             # Edward's part
             # double check this part - currently, the argument
@@ -107,6 +107,7 @@ async def endpointFunc(xmlDoc: str, shipment: dict,
                 "order_id": order_response.get("order_id"),
                 "order_ref"
                 "supplier": supplier,
+                "shipment": shipment,
                 "customer": delivery_customer,
                 "despatch_line": despatch_line
             }
