@@ -4,10 +4,14 @@ from src.despatch.despatchCreate import (
     create_despatch_advice,
     validate_despatch_advice
 )
+from src.despatch.despatchSupplier import despatchSupplier
+from src.despatch.deliveryCustomer import deliveryCustomer
+from src.despatch.shipment import create_shipment
 from src.despatch.orderCreate import (
     validate_order_document,
     create_order
 )
+from src.despatch.despatchLine import despatchLine
 from src.despatch.OrderReference import createOrderReference
 
 """
@@ -63,52 +67,51 @@ async def endpointFunc(xmlDoc: str, shipment: dict,
 
             order_result = await create_order(order_create_input)
             order_response = json.loads(order_result.get("body", "{}"))
+            uuid = order_response.uuid
 
             if order_result.get("statusCode") != 200:
                 return order_result
 
             # ============ ORDER REFERENCE =========================
-            db['']
-            createOrderReference(
+            # Need SalesOrderId to call orderReference
+            # db[order_result.order_id]
+            order_ref = createOrderReference(
                 order_response['order_id'],
-
+                # salesOrderId here,
+                client
             )
-            #  order_id: str,
-            # sales_order_id: str,
-            # collection: motor.motor_asyncio.AsyncIOMotorCollection
 
             # ======================================================
 
 
-            # MUST UPDATE SUPPLIER ARGUMENTS AND LOGIC
-            # REPLACE WITH DESPATCH LINE
-            sellerIsSupplier = supplier.get("is_seller", True)
+            # MUST UPDATE SUPPLIER ARGUMENTS AND LOGIC (future fix)
+            # sellerIsSupplier = supplier.get("is_seller", True)
+            supplier = despatchSupplier(uuid)
 
-            # CALL DESPATCH CUSTOMER
+            # Monique's part
+            delivery_customer = deliveryCustomer(uuid)
 
-            # REPLACE WITH SHIPMENT
-            delivery_period_result = process_delivery_period(
-                shipment, order_response.get("order_id")
-            )
+            # Yousef's part
+            # need clarity on shipment id?
+            # the return is a dict, need to access the right data
+            shipment = create_shipment(shipment_id, shipment)
 
-            # REPLACE WITH DESPATCH LINE
-            backordering_result = process_backordering(
-                despatch, order_response.get("order_id")
-            )
+            # Edward's part
+            # double check this part - currently, the argument
+            # check is done inside the function.
+            despatch_line = despatchLine(despatch, uuid)
 
+            # must update the function taking in this argument
+            # correct sequence of args etc
             despatch_input = {
                 "order_id": order_response.get("order_id"),
-                "supplier": {
-                    "is_seller": sellerIsSupplier,
-                    # Add any other supplier information from the input
-                    **(supplier or {}),
-                },
-                "customer": {
-                    # Extract customer info from order or despatch input
-                    "id": order_json.get("CustomerID"),
-                    "details": despatch.get("customer_details", {}),
-                },
+                "order_ref"
+                "supplier": supplier,
+                "customer": delivery_customer,
+                "despatch_line": despatch_line
             }
+
+            # ==============================================
 
             despatch_result = await create_despatch_advice(despatch_input)
             despatch_response = json.loads(despatch_result.get("body", "{}"))
@@ -122,7 +125,10 @@ async def endpointFunc(xmlDoc: str, shipment: dict,
             validation_response = json.loads(validation_result.
                                              get("body", "{}"))
 
-            # call create despatch advice to create the initial section of the DA
+
+            # ===================================
+            # call create despatch advice to create the 
+            # initial section of the DA
 
 
             return {

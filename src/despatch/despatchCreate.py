@@ -117,7 +117,8 @@ async def create_despatch_advice(event_body):
             supplier_info = body.get("supplier", {})
             customer_info = body.get("customer", {})
 
-            # missing shipment, order reference, despatch line 
+            # Need to change the values here
+            # add shipment, order reference, despatch line 
             despatch_data = {
                 "DespatchID": despatch_id,
                 "UUID": despatch_uuid,
