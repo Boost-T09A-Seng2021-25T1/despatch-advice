@@ -1,23 +1,8 @@
 from src.apiEndpoint import endpointFunc
+import asyncio
 import json
+from src.utils.constants import STATUS_SUCCESS
 
-
-# def endpointHelper():
-#     res = endpointFunc()
-
-#     # if
-#     return {
-#         "statusCode": 400,
-#         "body": json.dumps({"error": "Error: document is invalid."}),
-#     }
-
-#    if not isinstance(shipment, dict) or not isinstance(despatch, dict):
-#         return {
-#             "statusCode": 400,
-#             "body": json.dumps(
-#                 {"error": "Error: invalid shipment or despatch information"}
-#             ),
-#         }
 
 def lambda_handler(event, context):
     """
@@ -37,9 +22,16 @@ def lambda_handler(event, context):
     supplier = body.get("supplier", {})
 
     try:
-        endpointFunc(xmlDoc, shipment, despatch, supplier)
+        res = asyncio.run(
+            endpointFunc(xmlDoc, shipment, despatch, supplier)
+        )
 
-    except TypeError as e:
+        return {
+            "statuscode": STATUS_SUCCESS,
+            "body": res
+        }
+
+    except Exception as e:
         return {
             "statusCode": 400,
             "body": json.dumps(
