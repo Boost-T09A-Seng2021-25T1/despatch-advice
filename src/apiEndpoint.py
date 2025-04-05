@@ -39,10 +39,11 @@ async def endpointFunc(xmlDoc: str, shipment: dict,
 
 
     try:
-        (is_valid, validation_issues,
-            order_json) = await validate_order_document(
-            xmlDoc, "xml"
-        )
+        (
+            is_valid,
+            validation_issues,
+            order_json
+        ) = await validate_order_document(xmlDoc, "xml")
 
         if not is_valid:
             return {
@@ -67,7 +68,14 @@ async def endpointFunc(xmlDoc: str, shipment: dict,
                 return order_result
 
             # ============ ORDER REFERENCE =========================
-            # res = await db.orders.find_one({"UUID": orderUUID})
+            db['']
+            createOrderReference(
+                order_response['order_id'],
+
+            )
+            #  order_id: str,
+            # sales_order_id: str,
+            # collection: motor.motor_asyncio.AsyncIOMotorCollection
 
             # ======================================================
 
