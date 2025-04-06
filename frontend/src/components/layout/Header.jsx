@@ -67,7 +67,7 @@ const Header = () => {
 
             {/* 🔗 Docs button */}
             <a
-              href="https://your-swagger-url.com"
+              href="https://docs.d2a6fgkrp6cypv.amplifyapp.com/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white text-3xl bg-[#9F91E9] px-[30px] py-2.5 rounded-full hover:bg-opacity-90 transition-colors"
