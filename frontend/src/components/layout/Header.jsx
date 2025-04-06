@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <header className="w-full bg-[linear-gradient(180deg,#918C8C_0.01%,#000_98.08%)] py-5">
       <div className="max-w-none mx-auto px-5 max-md:max-w-[991px] max-sm:max-w-screen-sm">
@@ -40,7 +42,7 @@ const Header = () => {
               <img
                 src="https://cdn.builder.io/api/v1/image/assets/TEMP/c0ca434b2e22dbf8936d810a4e531a729d238667"
                 alt="Country flag"
-                className="w-[57px] h-[56px] rounded-full"
+                className="w-[36px] h-[36px] rounded-full"
               />
               <span className="text-white text-2xl">Australia</span>
               <button aria-label="Select country">
@@ -62,9 +64,20 @@ const Header = () => {
                 </svg>
               </button>
             </div>
+
+            {/* 🔗 Docs button */}
+            <a
+              href="https://your-swagger-url.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white text-3xl bg-[#9F91E9] px-[30px] py-2.5 rounded-full hover:bg-opacity-90 transition-colors"
+            >
+              Docs
+            </a>
+
             <Link
               to="/signin"
-              className="text-white text-3xl bg-[#9F91E9] px-[30px] py-2.5 rounded-full"
+              className="text-white text-3xl bg-[#9F91E9] px-[30px] py-2.5 rounded-full hover:bg-opacity-90 transition-colors"
             >
               Sign in
             </Link>
@@ -83,6 +96,14 @@ const Header = () => {
               <Link to="/" className="text-white text-lg">
                 About
               </Link>
+              <a
+                href="https://docs.d2a6fgkrp6cypv.amplifyapp.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white text-lg"
+              >
+                Docs
+              </a>
             </nav>
           </div>
         )}
@@ -90,4 +111,5 @@ const Header = () => {
     </header>
   );
 };
+
 export default Header;
