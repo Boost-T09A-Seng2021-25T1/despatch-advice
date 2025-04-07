@@ -2,7 +2,7 @@ import unittest
 from src.despatch.despatchLine import despatchLine
 import os
 import datetime
-from src.mongodb import dbConnect, addOrder, clearDb
+from src.mongodb import dbConnect, addOrder
 import asyncio
 import json
 
@@ -35,7 +35,6 @@ class TestDespatchSupplier(unittest.TestCase):
         # Make sure we close the client
         if hasattr(self, "client") and self.client:
             self.client.close()
-
 
     def testDespatchLineReturn(self):
         # Test invalid UUID case

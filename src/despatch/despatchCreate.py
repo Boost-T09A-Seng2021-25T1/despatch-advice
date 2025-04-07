@@ -9,6 +9,7 @@ from src.mongodb import (
     updateDocument,
     deleteDocument,
 )
+from src.despatch.xmlConversion import json_to_xml
 
 
 async def addDespatchAdvice(data):
@@ -79,7 +80,7 @@ async def create_despatch_advice(event_body):
 
     Args:
         event_body (dict): The JSON body of the request
-        containing order_id, supplier, and customer
+        containing order_id, supplier, customer, and other optional components
 
     Returns:
         dict: Response containing despatch_id, status, and xml_link
@@ -112,27 +113,64 @@ async def create_despatch_advice(event_body):
             despatch_id = f"D-{random_hex}"
             despatch_uuid = str(uuid.uuid4())
             current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+
+            # Get the initial XML structure
             xml_content = generate_initial_xml(despatch_id, current_date)
 
+            # Extract all the components from the request body
             supplier_info = body.get("supplier", {})
             customer_info = body.get("customer", {})
+            order_reference = body.get("order_reference", {})
+            shipment_info = body.get("shipment", {})
+            despatch_line_info = body.get("despatch_line", {})
 
-            # Need to change the values here
-            # add shipment, order reference, despatch line 
-            despatch_data = {
-                "DespatchID": despatch_id,
+            # Create a complete JSON structure for the despatch advice
+            complete_despatch_json = {
+                "ID": despatch_id,
                 "UUID": despatch_uuid,
                 "OrderID": order_id,
                 "Status": "Initiated",
                 "SupplierInfo": supplier_info,
                 "CustomerInfo": customer_info,
+                "OrderReference": order_reference,
+                "Shipment": shipment_info.get(
+                    "document"
+                ) if isinstance(
+                    shipment_info, dict
+                ) and "document" in shipment_info else shipment_info,
+                "DespatchLine": despatch_line_info.get(
+                    "DespatchLine"
+                ) if isinstance(
+                    despatch_line_info, dict
+                ) and "DespatchLine" in despatch_line_info else
+                despatch_line_info,
                 "CreationDate": current_date,
                 "XMLData": xml_content,
                 "LastModified": datetime.datetime.now().isoformat(),
             }
 
+            # If the components have enough data, generate a better XML
+            if (
+                supplier_info or
+                customer_info or
+                order_reference or
+                shipment_info or
+                despatch_line_info
+            ):
+                try:
+                    xml_content = json_to_xml(
+                        complete_despatch_json,
+                        "DespatchAdvice"
+                    )
+                    complete_despatch_json["XMLData"] = xml_content
+                except Exception as xml_error:
+                    # If XML generation fails, keep the initial basic XML
+                    print(f"Failed to generate complex XML: {str(xml_error)}")
+
             # Use the despatches collection
-            inserted_id = await db.despatches.insert_one(despatch_data)
+            inserted_id = await db.despatches.insert_one(
+                complete_despatch_json
+            )
 
             if not inserted_id:
                 return {
@@ -141,15 +179,18 @@ async def create_despatch_advice(event_body):
                         {"error": "Failed to create despatch advice"}),
                 }
 
+            # Include XML data in the response
+            response_data = {
+                "despatch_id": despatch_id,
+                "status": "Initiated",
+                "xml_link": f"/v1/despatch/{despatch_id}",
+                "despatch_data": complete_despatch_json,
+                "xml_content": xml_content  # Include the XML directly
+            }
+
             return {
                 "statusCode": 200,
-                "body": json.dumps(
-                    {
-                        "despatch_id": despatch_id,
-                        "status": "Initiated",
-                        "xml_link": f"/v1/despatch/{despatch_id}",
-                    }
-                ),
+                "body": json.dumps(response_data),
             }
         finally:
             client.close()
