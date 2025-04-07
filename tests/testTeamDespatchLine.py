@@ -36,10 +36,6 @@ class TestDespatchSupplier(unittest.TestCase):
         if hasattr(self, "client") and self.client:
             self.client.close()
 
-        # No need to run clearDb here - it's causing event loop errors
-        # Each test can set up its own data and
-        # we'll rely on clean test isolation
-
     def testDespatchLineReturn(self):
         # Test invalid UUID case
         with self.assertRaises(ValueError):
