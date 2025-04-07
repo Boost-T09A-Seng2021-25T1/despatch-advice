@@ -6,3 +6,4 @@ src/__pycache__/
 src/despatch/__pycache__/
 utils/__pycache__/
 /venv/
+/frontend/node_modules/
