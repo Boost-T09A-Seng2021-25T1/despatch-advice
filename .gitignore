@@ -6,4 +6,11 @@ src/__pycache__/
 src/despatch/__pycache__/
 utils/__pycache__/
 /venv/
-/frontend/node_modules/
+/frontend/node_modules
+/frontend/dist
+/frontend/.vite
+/frontend/.turbo
+/frontend/.next
+/frontend/build
+/frontend/.cache
+frontend/package-lock.json
