@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { GoogleLogin } from "@react-oauth/google";
+import jwt_decode from "jwt-decode";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -28,7 +30,7 @@ const SignIn = () => {
     setTimeout(() => {
       setIsLoading(false);
       console.log("Sign in attempt with:", { email, password });
-    }, 1500);
+    }, 10500);
   };
 
   return (
@@ -49,69 +51,29 @@ const SignIn = () => {
               </CardDescription>
             </CardHeader>
 
-            <CardContent>
-              <form onSubmit={handleSubmit}>
-                <div className="grid w-full items-center gap-6">
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="email" className="text-white">
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="bg-[#3A3B3A] text-white border-[#A193EE]"
-                    />
-                  </div>
+            <CardContent className="flex justify-center py-4">
+              <GoogleLogin
+                onSuccess={(credentialResponse) => {
+                  const decoded = jwt_decode(credentialResponse.credential);
+                  console.log("Google user:", decoded);
 
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="password" className="text-white">
-                      Password
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="bg-[#3A3B3A] text-white border-[#A193EE]"
-                    />
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Link
-                      to="/forgot-password"
-                      className="text-[#9F91E9] hover:underline text-sm"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                </div>
-
-                <CardFooter className="flex flex-col gap-4 pt-6 px-0">
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-[#9F91E9] hover:bg-[#8F81D9] text-white"
-                  >
-                    {isLoading ? "Signing in..." : "Sign in"}
-                  </Button>
-
-                  <div className="text-white text-center">
-                    Don't have an account?{" "}
-                    <Link
-                      to="/signup"
-                      className="text-[#9F91E9] hover:underline"
-                    >
-                      Sign up
-                    </Link>
-                  </div>
-                </CardFooter>
-              </form>
+                  // TO-DO - ATTACH BACKEND HERE
+                  fetch("https://apiHere.com/auth/google", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      idToken: credentialResponse.credential,
+                    }),
+                  })
+                    .then((res) => res.json())
+                    .then((data) => {
+                      console.log("Backend login success:", data);
+                    });
+                }}
+                onError={() => {
+                  console.error("Google Login Failed");
+                }}
+              />
             </CardContent>
           </Card>
         </main>
