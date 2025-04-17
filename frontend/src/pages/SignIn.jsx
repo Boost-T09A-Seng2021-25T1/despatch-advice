@@ -47,7 +47,7 @@ const SignIn = () => {
             <CardHeader>
               <CardTitle className="text-[#D9D9D9] text-2xl">Sign In</CardTitle>
               <CardDescription className="text-white">
-                Enter your credentials to access your account
+                Please login with Google using the button below
               </CardDescription>
             </CardHeader>
 
