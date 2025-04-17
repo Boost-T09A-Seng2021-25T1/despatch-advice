@@ -13,5 +13,4 @@ utils/__pycache__/
 /frontend/.next
 /frontend/build
 /frontend/.cache
-/frontend/package-lock.json
 /frontend/.env
