@@ -1,8 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import UserDropdown from "@/components/ui/UserDropdown";
 import {
   FileText,
   FileOutput,
@@ -98,10 +97,7 @@ const Dashboard = ({ user }) => {
 
             {/* Profile avatar */}
             <div className="flex items-center">
-              <Avatar>
-                <AvatarImage src={userImage} alt="User profile" />
-                <AvatarFallback>{userName[0]}</AvatarFallback>
-              </Avatar>
+              <UserDropdown user={{ name: userName, picture: userImage }} />
             </div>
           </div>
         </header>
