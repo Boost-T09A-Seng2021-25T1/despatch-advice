@@ -45,3 +45,5 @@ const UserDropdown = ({ user }) => {
     </div>
   );
 };
+
+export default UserDropdown;
