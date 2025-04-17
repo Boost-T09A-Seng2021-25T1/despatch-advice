@@ -18,14 +18,17 @@ const ActionCard = ({ title, to, icon }) => {
   return (
     <Link
       to={to}
-      className="flex flex-col items-center bg-[#2B2A2A] rounded-[20px] border-[3px] border-[#A193EE] overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-[#A193EE]/20 hover:scale-[1.02] hover:border-[#9F91E9] p-6"
+      className="flex flex-col items-center bg-[#2B2A2A] rounded-[20px] border-[3px] border-[#A193EE] overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-[#A193EE]/20 hover:scale-[1.02] hover:border-[#9F91E9] p-4" // 🔁 was p-6, now p-4
     >
-      <div className="mb-4 p-5 rounded-full bg-[#1A1F2C]/70 flex items-center justify-center">
+      <div className="mb-3 p-4 rounded-full bg-[#1A1F2C]/70 flex items-center justify-center">
+        {" "}
+        {/* smaller padding */}
         {icon}
       </div>
-      <h3 className="text-[#D9D9D9] text-lg font-medium text-center">
+      <h3 className="text-[#D9D9D9] text-base font-medium text-center">
         {title}
-      </h3>
+      </h3>{" "}
+      {/* smaller font */}
     </Link>
   );
 };
