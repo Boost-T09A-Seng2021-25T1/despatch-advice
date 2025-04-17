@@ -18,7 +18,7 @@ const ActionCard = ({ title, to, icon }) => {
   return (
     <Link
       to={to}
-      className="flex flex-col items-center bg-[#2B2A2A] rounded-[20px] border-[3px] border-[#A193EE] overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-[#A193EE]/20 hover:scale-[1.02] hover:border-[#9F91E9] p-4" // 🔁 was p-6, now p-4
+      className="flex flex-col items-center bg-[#2B2A2A] rounded-[20px] border-[3px] border-[#A193EE] overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-[#A193EE]/20 hover:scale-[1.02] hover:border-[#9F91E9] p-4"
     >
       <div className="mb-3 p-4 rounded-full bg-[#1A1F2C]/70 flex items-center justify-center">
         {" "}
@@ -68,74 +68,9 @@ const Dashboard = () => {
   ];
 
   return (
-    <>
-      <Helmet>
-        <title>Dashboard - BoostXchange</title>
-      </Helmet>
-
-      <div className="flex flex-col min-h-screen bg-black">
-        <header className="w-full bg-[linear-gradient(180deg,#2B2A2A_0.01%,#000_98.08%)] py-4">
-          <div className="max-w-none mx-auto px-5 max-md:max-w-[991px] max-sm:max-w-screen-sm">
-            <div className="flex items-center justify-between">
-              {/* Left: Small Logo */}
-              <div className="flex items-center w-1/10">
-                <div className="scale-[0.4] origin-left">
-                  <Logo />
-                </div>
-              </div>
-
-              {/* Center: Welcome Text + Placeholder Name */}
-              <div className="flex flex-col items-center justify-center text-center flex-grow">
-                <h2 className="text-white text-xl">
-                  Welcome to{" "}
-                  <span className="text-[#9F91E9]">BoostXchange</span>
-                </h2>
-                <p className="text-[#CCCCCC] text-sm italic">
-                  Signed in as <strong>User Name</strong>
-                </p>
-              </div>
-
-              {/* Right: Profile Image */}
-              <div className="flex items-center justify-end w-1/10">
-                <Avatar>
-                  <AvatarImage
-                    src="https://via.placeholder.com/150"
-                    alt="User profile"
-                  />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-grow">
-          <div className="max-w-none mx-auto px-5 py-10 max-md:max-w-[991px] max-sm:max-w-screen-sm">
-            <div className="flex flex-col items-center gap-6 mb-8">
-              <h1 className="text-[#D9D9D9] text-3xl font-medium">Dashboard</h1>
-              <p className="text-white text-lg max-w-2xl text-center">
-                Select an action below to get started with your document
-                processing
-              </p>
-              <div className="w-[250px] h-px bg-[#A193EE]" />
-            </div>
-
-            <div className="grid grid-cols-3 gap-8 max-xl:grid-cols-2 max-md:grid-cols-1">
-              {actions.map((action, index) => (
-                <ActionCard
-                  key={index}
-                  title={action.title}
-                  to={action.to}
-                  icon={action.icon}
-                />
-              ))}
-            </div>
-          </div>
-        </main>
-
-        <Footer />
-      </div>
-    </>
+    <div style={{ color: "white", padding: "2rem" }}>
+      ✅ Dashboard page rendered successfully.
+    </div>
   );
 };
 
