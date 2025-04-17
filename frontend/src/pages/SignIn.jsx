@@ -13,27 +13,24 @@ import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 
-const SignIn = () => {
+const SignIn = ({ setUser }) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleGoogleSuccess = async (credentialResponse) => {
     const decoded = jwtDecode(credentialResponse.credential);
 
-    // Extract profile info
     const userInfo = {
       name: decoded.name,
       email: decoded.email,
       picture: decoded.picture,
     };
 
-    // Store in localStorage
+    setUser(userInfo);
+
+    // to-do
     localStorage.setItem("user", JSON.stringify(userInfo));
 
-    // To-do: send to backend
-    // await fetch("https://apiHere.com/auth/google", ...);
-
-    // Redirect to dashboard
     navigate("/dashboard");
   };
 
