@@ -1,14 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -16,21 +11,30 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
+import { useNavigate } from "react-router-dom";
 
 const SignIn = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const decoded = jwtDecode(credentialResponse.credential);
 
-    // Simulate authentication process
-    setTimeout(() => {
-      setIsLoading(false);
-      console.log("Sign in attempt with:", { email, password });
-    }, 10500);
+    // Extract profile info
+    const userInfo = {
+      name: decoded.name,
+      email: decoded.email,
+      picture: decoded.picture,
+    };
+
+    // Store in localStorage
+    localStorage.setItem("user", JSON.stringify(userInfo));
+
+    // To-do: send to backend
+    // await fetch("https://apiHere.com/auth/google", ...);
+
+    // Redirect to dashboard
+    navigate("/dashboard");
   };
 
   return (
@@ -53,26 +57,8 @@ const SignIn = () => {
 
             <CardContent className="flex justify-center py-4">
               <GoogleLogin
-                onSuccess={(credentialResponse) => {
-                  const decoded = jwtDecode(credentialResponse.credential);
-                  console.log("Google user:", decoded);
-
-                  // TO-DO - ATTACH BACKEND HERE
-                  fetch("https://apiHere.com/auth/google", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      idToken: credentialResponse.credential,
-                    }),
-                  })
-                    .then((res) => res.json())
-                    .then((data) => {
-                      console.log("Backend login success:", data);
-                    });
-                }}
-                onError={() => {
-                  console.error("Google Login Failed");
-                }}
+                onSuccess={handleGoogleSuccess}
+                onError={() => console.error("Google Login Failed")}
               />
             </CardContent>
           </Card>
