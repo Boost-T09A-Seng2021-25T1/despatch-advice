@@ -15,7 +15,7 @@ import {
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { GoogleLogin } from "@react-oauth/google";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -54,7 +54,7 @@ const SignIn = () => {
             <CardContent className="flex justify-center py-4">
               <GoogleLogin
                 onSuccess={(credentialResponse) => {
-                  const decoded = jwt_decode(credentialResponse.credential);
+                  const decoded = jwtDecode(credentialResponse.credential);
                   console.log("Google user:", decoded);
 
                   // TO-DO - ATTACH BACKEND HERE
