@@ -33,7 +33,10 @@ const ActionCard = ({ title, to, icon }) => {
   );
 };
 
-const Dashboard = () => {
+const Dashboard = ({ user }) => {
+  const userName = user?.name || "User";
+  const userImage = user?.picture || "https://via.placeholder.com/150";
+
   const actions = [
     {
       title: "Create Order XML",
@@ -75,36 +78,30 @@ const Dashboard = () => {
 
       <div className="flex flex-col min-h-screen bg-black">
         <header className="w-full bg-[linear-gradient(180deg,#2B2A2A_0.01%,#000_98.08%)] py-4">
-          <div className="max-w-none mx-auto px-5 max-md:max-w-[991px] max-sm:max-w-screen-sm">
-            <div className="flex items-center justify-between">
-              {/* Left: Small Logo */}
-              <div className="flex items-center w-1/10">
-                <div className="scale-[0.4] origin-left">
-                  <Logo />
-                </div>
+          <div className="flex items-center justify-between max-w-[1440px] mx-auto px-6">
+            {/* Logo (shrinked) */}
+            <div className="flex items-center">
+              <div className="scale-[0.3] origin-left">
+                <Logo />
               </div>
+            </div>
 
-              {/* Center: Welcome Text + Placeholder Name */}
-              <div className="flex flex-col items-center justify-center text-center flex-grow">
-                <h2 className="text-white text-xl">
-                  Welcome to{" "}
-                  <span className="text-[#9F91E9]">BoostXchange</span>
-                </h2>
-                <p className="text-[#CCCCCC] text-sm italic">
-                  Signed in as <strong>User Name</strong>
-                </p>
-              </div>
+            {/* Centered welcome text */}
+            <div className="flex flex-col items-center flex-grow text-center -ml-28">
+              <h2 className="text-white text-xl font-medium">
+                Welcome to <span className="text-[#9F91E9]">BoostXchange</span>
+              </h2>
+              <p className="text-[#CCCCCC] text-sm italic">
+                Signed in as <strong>{userName}</strong>
+              </p>
+            </div>
 
-              {/* Right: Profile Image */}
-              <div className="flex items-center justify-end w-1/10">
-                <Avatar>
-                  <AvatarImage
-                    src="https://via.placeholder.com/150"
-                    alt="User profile"
-                  />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-              </div>
+            {/* Profile avatar */}
+            <div className="flex items-center">
+              <Avatar>
+                <AvatarImage src={userImage} alt="User profile" />
+                <AvatarFallback>{userName[0]}</AvatarFallback>
+              </Avatar>
             </div>
           </div>
         </header>
