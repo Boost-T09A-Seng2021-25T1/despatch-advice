@@ -1,3 +1,4 @@
+import base64
 import uuid
 import datetime
 import json
@@ -10,6 +11,7 @@ from src.mongodb import (
     deleteDocument,
 )
 from src.despatch.xmlConversion import json_to_xml
+from src.despatch.xmlConversion import xml_to_pdf
 
 
 async def addDespatchAdvice(data):
@@ -442,6 +444,142 @@ async def delete_despatch_advice(despatch_id):
 
     except Exception as e:
         print(f"Error deleting despatch advice: {str(e)}")
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": f"Server error: {str(e)}"}),
+        }
+
+
+async def generate_despatch_pdf(despatch_id):
+    """
+    Generate a PDF for a despatch advice
+
+    Args:
+        despatch_id (str): The ID of the despatch advice
+
+    Returns:
+        dict: Response containing the PDF or error
+    """
+    try:
+        despatch = await getDespatchAdvice(despatch_id)
+
+        if not despatch:
+            return {
+                "statusCode": 404,
+                "body": json.dumps({"error": "Despatch Advice not found"}),
+            }
+
+        xml_data = despatch.get("XMLData", "")
+        if not xml_data:
+            return {
+                "statusCode": 400,
+                "body": json.dumps({
+                    "error": "No XML data available for this despatch"
+                }),
+            }
+
+        # Generate PDF
+        pdf_data = await xml_to_pdf(xml_data)
+        pdf_b64 = base64.b64encode(pdf_data).decode('utf-8')
+
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "Content-Disposition": (
+                    f"attachment; filename=\"despatch-{despatch_id}.pdf\""
+                )
+            },
+            "body": json.dumps({
+                "despatch_id": despatch_id,
+                "pdf_data": pdf_b64,
+                "filename": f"despatch-{despatch_id}.pdf"
+            }),
+        }
+
+    except Exception as e:
+        print(f"Error generating PDF: {str(e)}")
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": f"Server error: {str(e)}"}),
+        }
+
+
+async def send_despatch_notification(despatch_id, recipient_email=None):
+    """
+    Send an email notification for a despatch advice
+
+    Args:
+        despatch_id (str): The ID of the despatch advice
+        recipient_email (str, optional): Email address to send
+        to (if None, uses customer email from despatch)
+
+    Returns:
+        dict: Response containing the notification status
+    """
+    try:
+        from src.utils.email_sender import (
+            send_despatch_email, create_despatch_email_body
+        )
+
+        despatch = await getDespatchAdvice(despatch_id)
+
+        if not despatch:
+            return {
+                "statusCode": 404,
+                "body": json.dumps({"error": "Despatch Advice not found"}),
+            }
+
+        # Generate PDF
+        xml_data = despatch.get("XMLData", "")
+        pdf_data = await xml_to_pdf(xml_data)
+
+        # Determine recipient email
+        if not recipient_email:
+            # Extract from customer info in despatch
+            customer_info = despatch.get("CustomerInfo", {})
+            party = customer_info.get("Party", {})
+            contact = party.get("Contact", {})
+            recipient_email = contact.get("ElectronicMail", "")
+
+            if not recipient_email:
+                return {
+                    "statusCode": 400,
+                    "body": json.dumps({
+                        "error": "No recipient email available"
+                    }),
+                }
+
+        # Create email content
+        subject = f"Despatch Advice Notification - {despatch_id}"
+        body = create_despatch_email_body(despatch)
+        attachment = (f"despatch-{despatch_id}.pdf", pdf_data)
+
+        # Send email
+        email_sent = await send_despatch_email(
+            recipient_email, subject, body, attachment
+        )
+
+        if email_sent:
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "status": "success",
+                    "message": f"Notification email sent to {recipient_email}",
+                    "despatch_id": despatch_id
+                }),
+            }
+        else:
+            return {
+                "statusCode": 500,
+                "body": json.dumps({
+                    "error": "Failed to send notification email",
+                    "despatch_id": despatch_id
+                }),
+            }
+
+    except Exception as e:
+        print(f"Error sending notification: {str(e)}")
         return {
             "statusCode": 500,
             "body": json.dumps({"error": f"Server error: {str(e)}"}),
