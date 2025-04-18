@@ -1,8 +1,10 @@
-from src.apiEndpoint import endpointFunc
+from src.apiEndpoint import endpointFunc, get_shipment_qr_code
 import asyncio
 import json
 from src.utils.constants import STATUS_SUCCESS
-from src.despatch.despatchCreate import generate_despatch_pdf  # New import
+from src.despatch.despatchCreate import generate_despatch_pdf
+from src.despatch.despatchCreate import send_despatch_notification
+
 
 def lambda_handler(event, context):
     """
@@ -17,7 +19,9 @@ def lambda_handler(event, context):
     # Extract path and method info to determine the endpoint type
     path = event.get('path', '')
     method = event.get('httpMethod', 'POST')
-    
+
+    path_parameters = event.get('pathParameters', {}) or {}
+
     # Handle PDF generation endpoint
     if '/pdf/' in path and method == 'GET':
         # Extract despatch ID from the path
@@ -26,32 +30,38 @@ def lambda_handler(event, context):
         if despatch_index < len(path_parts):
             despatch_id = path_parts[despatch_index]
             return asyncio.run(generate_despatch_pdf(despatch_id))
-        
+
     # Handle email notification endpoint
     if path.endswith('/notify') and method == 'POST':
         despatch_id = path_parameters.get('despatchId')
-        
+
         # Get recipient email from request body if provided
         notification_body = json.loads(event.get('body', '{}'))
         recipient_email = notification_body.get('email')
-        
+
         if despatch_id:
-            return asyncio.run(send_despatch_notification(despatch_id, recipient_email))
-    
+            return asyncio.run(
+                send_despatch_notification(despatch_id, recipient_email)
+            )
+
     # Handle QR code generation endpoint
     if path.endswith('/qrcode') and method == 'GET':
         shipment_id = path_parameters.get('shipmentId')
-        
+
         # Get additional info from query parameters if provided
         query_params = event.get('queryStringParameters', {}) or {}
         additional_info = {}
-        
+
         for key, value in query_params.items():
             if key != 'shipmentId':
                 additional_info[key] = value
-        
+
         if shipment_id:
-            return asyncio.run(get_shipment_qr_code(shipment_id, additional_info if additional_info else None))
+            return asyncio.run(
+                get_shipment_qr_code(
+                    shipment_id, additional_info if additional_info else None
+                )
+            )
 
     # Default behavior - process despatch creation
     body = json.loads(event.get('body', '{}'))
@@ -76,7 +86,7 @@ def lambda_handler(event, context):
             "statusCode": 400,
             "body": json.dumps(
                 {
-                    "error": str(e)  # Changed from {e} to str(e) for proper JSON serialization
+                    "error": str(e)
                 }
             )
         }
