@@ -381,10 +381,12 @@ def process_backordering(despatch_info, order_id):
         }
     }
 
+
 async def get_shipment_qr_code(shipment_id, additional_info=None):
     """
+
     Get QR code for a shipment
-    
+
     Args:
         shipment_id (str): ID of the shipment
         additional_info (dict, optional): Additional info to include in QR code
