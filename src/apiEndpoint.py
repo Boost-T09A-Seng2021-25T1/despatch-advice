@@ -419,5 +419,6 @@ async def get_shipment_qr_code(shipment_id, additional_info=None):
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": f"Error generating QR code: {str(e)}"})
+            "body": json.dumps({
+                "error": f"Error generating QR code: {str(e)}"})
         }
