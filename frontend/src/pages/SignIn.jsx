@@ -18,20 +18,42 @@ const SignIn = ({ setUser }) => {
   const navigate = useNavigate();
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    const decoded = jwtDecode(credentialResponse.credential);
+    const idToken = credentialResponse.credential;
+    const decoded = jwtDecode(idToken);
 
-    const userInfo = {
-      name: decoded.name,
-      email: decoded.email,
-      picture: decoded.picture,
-    };
+    console.log("Google ID Token:", idToken);
+    console.log("Decoded Google User:", decoded);
 
-    setUser(userInfo);
+    try {
+      const res = await fetch(
+        "https://ec9sac95d0.execute-api.us-east-1.amazonaws.com/v2/auth/google_login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ idToken }),
+        }
+      );
 
-    // to-do
-    localStorage.setItem("user", JSON.stringify(userInfo));
+      const data = await res.json();
+      console.log("Backend response:", data);
 
-    navigate("/dashboard");
+      if (!res.ok) {
+        console.error("Login failed:", data.error);
+        alert("Login failed: " + data.error);
+        return;
+      }
+
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("token", data.token);
+      setUser(data.user);
+
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Request error:", err);
+      alert("Something went wrong. Try again later.");
+    }
   };
 
   return (
