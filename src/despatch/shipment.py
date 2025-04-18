@@ -119,3 +119,79 @@ async def create_shipment(shipment_id: str, data: dict):
     finally:
         # Close the MongoDB connection
         mongoClient.close()
+
+async def generate_shipment_qr_code(shipment_id, additional_info=None):
+    """
+    Generate a QR code for a shipment
+    
+    Args:
+        shipment_id (str): ID of the shipment
+        additional_info (dict, optional): Additional information to encode
+        
+    Returns:
+        dict: Result with base64-encoded QR code image
+    """
+    from src.utils.qr_generator import generate_qr_code_base64
+    
+    try:
+        # Get shipment details
+        mongoClient, db = await dbConnect()
+        shipments = db["shipments"]
+        
+        try:
+            shipment = await shipments.find_one({"ID": shipment_id})
+            
+            if not shipment:
+                return {
+                    "success": False,
+                    "error": f"Shipment with ID '{shipment_id}' not found"
+                }
+            
+            # Create data for QR code
+            qr_data = {
+                "shipment_id": shipment_id,
+                "tracking_url": f"https://boostxchange.com/track/{shipment_id}",
+                "created_at": datetime.datetime.now().isoformat()
+            }
+            
+            # Add delivery information if available
+            if "Delivery" in shipment:
+                delivery = shipment["Delivery"]
+                if "DeliveryAddress" in delivery:
+                    address = delivery["DeliveryAddress"]
+                    qr_data["delivery_location"] = {
+                        "city": address.get("CityName", ""),
+                        "country": address.get("Country", {}).get("IdentificationCode", "")
+                    }
+                
+                if "RequestedDeliveryPeriod" in delivery:
+                    period = delivery["RequestedDeliveryPeriod"]
+                    qr_data["delivery_date"] = period.get("StartDate", "")
+            
+            # Add consignment information if available
+            if "Consignment" in shipment:
+                qr_data["consignment_id"] = shipment["Consignment"].get("ID", "")
+            
+            # Add additional info if provided
+            if additional_info and isinstance(additional_info, dict):
+                qr_data.update(additional_info)
+            
+            # Generate QR code
+            qr_code = generate_qr_code_base64(qr_data)
+            
+            return {
+                "success": True,
+                "shipment_id": shipment_id,
+                "qr_code": qr_code,
+                "qr_data": qr_data
+            }
+        
+        finally:
+            mongoClient.close()
+    
+    except Exception as e:
+        logger.error(f"Error generating shipment QR code: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }

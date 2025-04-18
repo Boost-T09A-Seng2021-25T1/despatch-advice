@@ -416,3 +416,81 @@ def json_to_xml_despatch_advice(json_obj):
 </DespatchAdvice>"""
 
     return xml
+
+async def xml_to_pdf(xml_string, file_path=None):
+    """
+    Convert XML string to PDF document
+    
+    Args:
+        xml_string (str): XML document as a string
+        file_path (str, optional): Path to save the PDF file
+        
+    Returns:
+        bytes: PDF document as bytes
+    """
+    from weasyprint import HTML, CSS
+    import tempfile
+    from src.utils.html_formatter import xml_string_to_formatted_html
+    
+    # Create an HTML version with nice formatting
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Despatch Advice Document</title>
+            <style>
+                @page {{ size: A4; margin: 2cm; }}
+                body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; }}
+                .header {{ padding: 10px; background-color: #f0f0f0; border-bottom: 1px solid #ddd; margin-bottom: 20px; }}
+                .header h1 {{ color: #333366; margin: 0; font-size: 24px; }}
+                .content {{ padding: 0 20px; }}
+                .footer {{ padding: 10px; font-size: 10px; text-align: center; margin-top: 30px; border-top: 1px solid #ddd; }}
+                .xml-code {{ font-family: monospace; white-space: pre-wrap; font-size: 11px; overflow-x: auto; }}
+                .xml-tag {{ color: #0066aa; }}
+                table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
+                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                th {{ background-color: #f2f2f2; font-weight: bold; }}
+                .document-info {{ margin-bottom: 20px; }}
+                .document-info p {{ margin: 5px 0; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Despatch Advice</h1>
+            </div>
+            <div class="content">
+                <div class="document-info">
+                    <p><strong>Date Generated:</strong> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    <p><strong>Document Format:</strong> Universal Business Language (UBL)</p>
+                </div>
+                <div class="xml-content">
+                    {xml_string_to_formatted_html(xml_string)}
+                </div>
+            </div>
+            <div class="footer">
+                <p>This document was automatically generated. Page <span class="page"></span> of <span class="topage"></span></p>
+            </div>
+        </body>
+    </html>
+    """
+    
+    # Convert to PDF
+    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
+        temp_path = temp.name
+        temp.write(html_content.encode('utf-8'))
+        temp.flush()
+    
+    try:
+        pdf_document = HTML(temp_path).write_pdf()
+        
+        # Save to file if path is provided
+        if file_path:
+            with open(file_path, 'wb') as f:
+                f.write(pdf_document)
+        
+        return pdf_document
+    finally:
+        # Clean up temporary file
+        import os
+        os.unlink(temp_path)

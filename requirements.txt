@@ -5,3 +5,7 @@ pymongo
 python-dotenv
 motor
 datetime
+weasyprint==60.1
+aiosmtplib==2.0.2
+qrcode==7.4.2
+pillow==10.0.1

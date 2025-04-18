@@ -380,3 +380,40 @@ def process_backordering(despatch_info, order_id):
             "notification_config": notification_config
         }
     }
+
+async def get_shipment_qr_code(shipment_id, additional_info=None):
+    """
+    Get QR code for a shipment
+    
+    Args:
+        shipment_id (str): ID of the shipment
+        additional_info (dict, optional): Additional info to include in QR code
+        
+    Returns:
+        dict: Response with QR code data
+    """
+    from src.despatch.shipment import generate_shipment_qr_code
+    
+    try:
+        result = await generate_shipment_qr_code(shipment_id, additional_info)
+        
+        if result.get("success"):
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "shipment_id": result.get("shipment_id"),
+                    "qr_code": result.get("qr_code"),
+                    "data": result.get("qr_data")
+                })
+            }
+        else:
+            return {
+                "statusCode": 404 if "not found" in result.get("error", "") else 500,
+                "body": json.dumps({"error": result.get("error")})
+            }
+    
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": f"Error generating QR code: {str(e)}"})
+        }
