@@ -1,0 +1,65 @@
+import qrcode
+import io
+import base64
+import json
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def generate_qr_code(data, image_format="PNG"):
+    """
+    Generate a QR code for the given data
+    
+    Args:
+        data (dict or str): Data to encode in QR code
+        image_format (str): Image format (PNG, JPEG, etc.)
+        
+    Returns:
+        bytes: QR code image as bytes
+    """
+    try:
+        # Convert dict to JSON string if needed
+        if isinstance(data, dict):
+            data = json.dumps(data)
+        
+        # Generate QR code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convert to bytes
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format=image_format)
+        
+        return img_bytes.getvalue()
+    
+    except Exception as e:
+        logger.error(f"Error generating QR code: {str(e)}")
+        raise
+
+def generate_qr_code_base64(data, image_format="PNG"):
+    """
+    Generate a base64-encoded QR code for the given data
+    
+    Args:
+        data (dict or str): Data to encode in QR code
+        image_format (str): Image format (PNG, JPEG, etc.)
+        
+    Returns:
+        str: Base64-encoded QR code image
+    """
+    img_bytes = generate_qr_code(data, image_format)
+    img_b64 = base64.b64encode(img_bytes).decode('utf-8')
+    
+    # Add data URI prefix
+    mime_type = f"image/{image_format.lower()}"
+    return f"data:{mime_type};base64,{img_b64}"
