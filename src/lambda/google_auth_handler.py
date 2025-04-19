@@ -65,7 +65,7 @@ def lambda_handler(event, context):
         return {
             "statusCode": 200,
             "headers": {
-                "Access-Control-Allow-Origin": "https://boostxchange.d3og0cttbeqb7q.amplifyapp.com/signin",
+                "Access-Control-Allow-Origin": "https://boostxchange.d3og0cttbeqb7q.amplifyapp.com",
                 "Access-Control-Allow-Headers": "Content-Type",
                 "Access-Control-Allow-Methods": "POST, OPTIONS",
             },
@@ -83,7 +83,7 @@ def lambda_handler(event, context):
         return {
             "statusCode": 401,
             "headers": {
-                "Access-Control-Allow-Origin": "https://boostxchange.d3og0cttbeqb7q.amplifyapp.com/signin",
+                "Access-Control-Allow-Origin": "https://boostxchange.d3og0cttbeqb7q.amplifyapp.com",
                 "Access-Control-Allow-Headers": "Content-Type",
                 "Access-Control-Allow-Methods": "POST, OPTIONS",
             },
@@ -94,7 +94,7 @@ def lambda_handler(event, context):
         return {
             "statusCode": 500,
             "headers": {
-                "Access-Control-Allow-Origin": "https://boostxchange.d3og0cttbeqb7q.amplifyapp.com/signin",
+                "Access-Control-Allow-Origin": "https://boostxchange.d3og0cttbeqb7q.amplifyapp.com",
                 "Access-Control-Allow-Headers": "Content-Type",
                 "Access-Control-Allow-Methods": "POST, OPTIONS",
             },
