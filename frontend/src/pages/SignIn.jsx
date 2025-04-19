@@ -26,7 +26,7 @@ const SignIn = ({ setUser }) => {
 
     try {
       const res = await fetch(
-        "https://vm1vgp720e.execute-api.us-east-1.amazonaws.com/v2/google/login",
+        "https://vm1vgp720e.execute-api.us-east-1.amazonaws.com/v2/v2/google/login",
         {
           method: "POST",
           headers: {
@@ -36,19 +36,19 @@ const SignIn = ({ setUser }) => {
         }
       );
 
-      const data = await res.json();
-      console.log("Backend response:", data);
+      const rawText = await res.text();
+      console.log("Status Code:", res.status);
+      console.log("Raw Response:", rawText);
 
       if (!res.ok) {
-        console.error("Login failed:", data.error);
-        alert("Login failed: " + data.error);
+        alert("Login failed: " + rawText);
         return;
       }
 
+      const data = JSON.parse(rawText);
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("token", data.token);
       setUser(data.user);
-
       navigate("/dashboard");
     } catch (err) {
       console.error("Request error:", err);
