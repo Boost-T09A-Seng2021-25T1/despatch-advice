@@ -26,7 +26,7 @@ const SignIn = ({ setUser }) => {
 
     try {
       const res = await fetch(
-        "https://vm1vgp720e.execute-api.us-east-1.amazonaws.com/v2/v2/google/login",
+        "https://vm1vgp720e.execute-api.us-east-1.amazonaws.com/v2",
         {
           method: "POST",
           headers: {
