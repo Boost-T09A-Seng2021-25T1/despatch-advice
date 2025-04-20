@@ -35,6 +35,19 @@ def register_user(google_user, users):
 
 
 def lambda_handler(event, context):
+    # OPTIONS request (preflight)
+    if event.get('httpMethod') == 'OPTIONS':
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "https://boostxchange.d3og0cttbeqb7q.amplifyapp.com",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+            },
+            "body": ""
+        }
+
+    # POST logic
     try:
         body = json.loads(event["body"])
         id_token = body.get("idToken")
@@ -42,6 +55,11 @@ def lambda_handler(event, context):
         if not id_token:
             return {
                 "statusCode": 400,
+                "headers": {
+                    "Access-Control-Allow-Origin": "https://boostxchange.d3og0cttbeqb7q.amplifyapp.com",
+                    "Access-Control-Allow-Headers": "Content-Type",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                },
                 "body": json.dumps({"error": "Missing idToken"})
             }
 
