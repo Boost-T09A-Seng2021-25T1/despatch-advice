@@ -18,20 +18,50 @@ const SignIn = ({ setUser }) => {
   const navigate = useNavigate();
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    const decoded = jwtDecode(credentialResponse.credential);
+    const idToken = credentialResponse?.credential;
+    if (!idToken) {
+      alert("Missing Google credential. Please try again.");
+      return;
+    }
 
-    const userInfo = {
-      name: decoded.name,
-      email: decoded.email,
-      picture: decoded.picture,
-    };
+    setIsLoading(true);
 
-    setUser(userInfo);
+    const decoded = jwtDecode(idToken);
+    console.log("Google ID Token:", idToken);
+    console.log("Decoded Google User:", decoded);
 
-    // to-do
-    localStorage.setItem("user", JSON.stringify(userInfo));
+    try {
+      const res = await fetch(
+        "https://vm1vgp720e.execute-api.us-east-1.amazonaws.com/v2/google/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ idToken }),
+        }
+      );
 
-    navigate("/dashboard");
+      const rawText = await res.text();
+      console.log("Status Code:", res.status);
+      console.log("Raw Response:", rawText);
+
+      if (!res.ok) {
+        alert("Login failed: " + rawText);
+        return;
+      }
+
+      const data = JSON.parse(rawText);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("token", data.token);
+      setUser(data.user);
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Request error:", err);
+      alert("Something went wrong. Try again later.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -53,10 +83,39 @@ const SignIn = ({ setUser }) => {
             </CardHeader>
 
             <CardContent className="flex justify-center py-4">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => console.error("Google Login Failed")}
-              />
+              {isLoading ? (
+                <div className="text-white text-center">
+                  <svg
+                    className="animate-spin h-6 w-6 mr-2 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8H4z"
+                    ></path>
+                  </svg>
+                  Processing login...
+                </div>
+              ) : (
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => {
+                    console.error("Google Login Failed");
+                    alert("Google login failed. Please try again.");
+                  }}
+                />
+              )}
             </CardContent>
           </Card>
         </main>
