@@ -42,7 +42,7 @@ export default function CreateDespatch() {
       setError("");
 
       const response = await fetch(
-        "https://uj1acngyia.execute-api.us-east-1.amazonaws.com/v2/despatch/generate",
+        "https://uj1acngyia.execute-api.us-east-1.amazonaws.com/v2/apiEndPoint",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
