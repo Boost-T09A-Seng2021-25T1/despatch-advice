@@ -30,6 +30,7 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/signin" element={<SignIn setUser={setUser} />} />
                 <Route path="/dashboard" element={<Dashboard user={user} />} />
+                <Route path="/create-despatch" element={<CreateDespatch />} />
                 <Route path="/logged-out" element={<LoggedOut />} />
               </Routes>
             </BrowserRouter>
