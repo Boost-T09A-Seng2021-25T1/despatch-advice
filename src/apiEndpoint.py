@@ -15,7 +15,11 @@ from src.despatch.OrderReference import create_order_reference
 from src.despatch.despatchLine import despatchLineAsync
 from src.despatch.shipment import create_shipment
 from datetime import datetime
+from xml.dom.minidom import parseString
 
+
+def pretty_format_xml(xml_str: str) -> str:
+    return parseString(xml_str).toprettyxml(indent="    ")
 
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -275,7 +279,7 @@ async def endpointFunc(
                     print("⚠️ Error during XML conversion:", str(xml_debug_error))
                     raise
             else:
-                despatch_xml = json_to_xml(despatch_data, "DespatchAdvice")
+                despatch_xml = pretty_format_xml(json_to_xml(despatch_data, "DespatchAdvice"))
 
             # 14. Return the complete response with XML content
             return {
@@ -284,7 +288,7 @@ async def endpointFunc(
                     {
                         "order": order_response,
                         "despatch": despatch_response,
-                        "despatch_xml": despatch_xml,  # Add the XML string
+                        "despatch_xml": despatch_xml,
                         "validation": validation_response,
                         "delivery_period": delivery_period_result,
                         "backordering": backordering_result,
