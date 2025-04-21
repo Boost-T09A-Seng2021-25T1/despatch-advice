@@ -4,7 +4,6 @@ import datetime
 import json
 from lxml import etree
 from src.mongodb import (
-    getOrderInfo,
     addOrder,
     dbConnect,
     updateDocument,
@@ -12,6 +11,21 @@ from src.mongodb import (
 )
 from src.despatch.xmlConversion import json_to_xml
 from src.despatch.xmlConversion import xml_to_pdf
+from bson import ObjectId
+from datetime import datetime
+
+
+def convert_objectids(obj):
+    if isinstance(obj, dict):
+        return {k: convert_objectids(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_objectids(v) for v in obj]
+    elif isinstance(obj, ObjectId):
+        return str(obj)
+    elif isinstance(obj, datetime):
+        return obj.isoformat()  # Convert datetime to string
+    else:
+        return obj
 
 
 async def addDespatchAdvice(data):
@@ -102,7 +116,16 @@ async def create_despatch_advice(event_body):
 
         client, db = await dbConnect()
         try:
-            order = await getOrderInfo(order_id, db)
+            orders_collection = db["orders"]
+            order = await orders_collection.find_one(
+                {"OrderID": order_id}) or await orders_collection.find_one({"UUID": order_id}
+            )
+
+            if not order:
+                return {
+                    "statusCode": 404,
+                    "body": json.dumps({"error": "Order does not exist"})
+            }
 
             if not order:
                 return {
@@ -114,7 +137,7 @@ async def create_despatch_advice(event_body):
             random_hex = uuid.uuid4().hex[:8].upper()
             despatch_id = f"D-{random_hex}"
             despatch_uuid = str(uuid.uuid4())
-            current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+            current_date = datetime.now().strftime("%Y-%m-%d")
 
             # Get the initial XML structure
             xml_content = generate_initial_xml(despatch_id, current_date)
@@ -126,29 +149,31 @@ async def create_despatch_advice(event_body):
             shipment_info = body.get("shipment", {})
             despatch_line_info = body.get("despatch_line", {})
 
+            if isinstance(shipment_info, dict):
+                shipment_data = shipment_info.get("document", shipment_info)
+            else:
+                shipment_data = {}
+
+            if isinstance(despatch_line_info, dict):
+                despatch_line_data = despatch_line_info.get("DespatchLine", despatch_line_info)
+            else:
+                despatch_line_data = {}
+
             # Create a complete JSON structure for the despatch advice
             complete_despatch_json = {
+                "DespatchID": despatch_id,
                 "ID": despatch_id,
                 "UUID": despatch_uuid,
                 "OrderID": order_id,
+                "CreationDate": current_date,
                 "Status": "Initiated",
+                "OrderReference": order_reference,
                 "SupplierInfo": supplier_info,
                 "CustomerInfo": customer_info,
-                "OrderReference": order_reference,
-                "Shipment": shipment_info.get(
-                    "document"
-                ) if isinstance(
-                    shipment_info, dict
-                ) and "document" in shipment_info else shipment_info,
-                "DespatchLine": despatch_line_info.get(
-                    "DespatchLine"
-                ) if isinstance(
-                    despatch_line_info, dict
-                ) and "DespatchLine" in despatch_line_info else
-                despatch_line_info,
-                "CreationDate": current_date,
+                "DespatchLine": despatch_line_data,
+                "Shipment": shipment_data,
                 "XMLData": xml_content,
-                "LastModified": datetime.datetime.now().isoformat(),
+                "LastModified": datetime.now().isoformat(),
             }
 
             # If the components have enough data, generate a better XML
@@ -156,8 +181,8 @@ async def create_despatch_advice(event_body):
                 supplier_info or
                 customer_info or
                 order_reference or
-                shipment_info or
-                despatch_line_info
+                shipment_data or
+                despatch_line_data
             ):
                 try:
                     xml_content = json_to_xml(
@@ -180,6 +205,8 @@ async def create_despatch_advice(event_body):
                     "body": json.dumps(
                         {"error": "Failed to create despatch advice"}),
                 }
+
+            complete_despatch_json = convert_objectids(complete_despatch_json)
 
             # Include XML data in the response
             response_data = {

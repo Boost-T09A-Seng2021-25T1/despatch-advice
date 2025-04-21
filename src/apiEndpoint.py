@@ -1,5 +1,5 @@
 import json
-from src.mongodb import dbConnect, getOrderInfo
+from src.mongodb import dbConnect
 from src.despatch.despatchCreate import (
     create_despatch_advice,
     validate_despatch_advice
@@ -12,8 +12,16 @@ from src.despatch.xmlConversion import json_to_xml
 from src.despatch.despatchSupplier import despatchSupplier
 from src.despatch.deliveryCustomer import deliveryCustomer
 from src.despatch.OrderReference import create_order_reference
-from src.despatch.despatchLine import despatchLine
+from src.despatch.despatchLine import despatchLineAsync
 from src.despatch.shipment import create_shipment
+from datetime import datetime
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 
 async def endpointFunc(
@@ -36,7 +44,7 @@ async def endpointFunc(
         dict: Response containing results of the operations
     """
     # Input validation
-    if xmlDoc is None or not isinstance(xmlDoc, str):
+    if not xmlDoc or not isinstance(xmlDoc, str):
         raise TypeError("Error: document is invalid.")
 
     if any(
@@ -84,15 +92,21 @@ async def endpointFunc(
             # Get the order ID and UUID for subsequent operations
             order_id = order_response.get("order_id")
             order_uuid = order_response.get("uuid")
-            order = await getOrderInfo(order_id, db)
+
+            orders_collection = db["orders"]
+            order = await orders_collection.find_one(
+                {"OrderID": order_id}) or await orders_collection.find_one({"UUID": order_id}
+            )
+            if not order:
+                return {
+                    "statusCode": 404,
+                    "body": json.dumps({"error": f"Order {order_id} not found"})
+            }
+
             salesOrderId = order.get('SalesOrderId', "")
 
             # 4. Create order reference
-            order_ref = await create_order_reference(
-                order_id,
-                salesOrderId,
-                db
-            )
+            order_ref = await create_order_reference(order_id, salesOrderId, db["orders"])
 
             # 5. Get supplier information
             supplier_info = {}
@@ -178,7 +192,7 @@ async def endpointFunc(
                     if not line_details.get('BackOrderQuantity'):
                         line_details['BackOrderQuantity'] = 0
 
-                    despatch_line_result = despatchLine(
+                    despatch_line_result = await despatchLineAsync(
                         line_details,
                         order_uuid
                     )
@@ -221,24 +235,46 @@ async def endpointFunc(
             )
 
             # 13. Convert despatch data to XML
+            despatch_id = despatch_response.get("despatch_id", "")
             despatch_data = despatch_response.get("despatch_data", {})
-            if not despatch_data:
-                # Fallback if despatch_data is not available
+
+            # Ensure despatch_id is added to fix DB duplication error
+            if "DespatchID" not in despatch_data:
+                despatch_data["DespatchID"] = despatch_id
+
+            if not isinstance(despatch_data, dict):
+                print("⚠️ despatch_data is not a dict, falling back to manual construction.")
+
+                # Ensure fallback values are dictionaries
+                shipment_fallback = shipment_result if isinstance(shipment_result, dict) else {}
+                despatch_line_fallback = despatch_line_result if isinstance(despatch_line_result, dict) else {}
+
                 complete_despatch_json = {
-                    "ID": despatch_response.get("despatch_id", ""),
-                    "OrderReference": order_ref,
-                    "DespatchSupplierParty": supplier_info,
-                    "DeliveryCustomerParty": customer_info,
-                    "Shipment": shipment_result.get("document", {}),
-                    "DespatchLine": despatch_line_result.get(
-                        "DespatchLine", {}
-                    )
+                    "ID": despatch_id,
+                    "OrderReference": order_ref if isinstance(order_ref, dict) else {"ID": order_ref},
+                    "DespatchSupplierParty": supplier_info if isinstance(supplier_info, dict) else {"Info": supplier_info},
+                    "DeliveryCustomerParty": customer_info if isinstance(customer_info, dict) else {"Info": customer_info},
+                    "Shipment": (
+                        shipment_result["document"]
+                        if isinstance(shipment_result, dict) and isinstance(shipment_result.get("document"), dict)
+                        else {}
+                    ),
+                    "DespatchLine": despatch_line_fallback.get("DespatchLine", despatch_line_fallback) if isinstance(despatch_line_fallback, dict) else {},
                 }
-                despatch_xml = json_to_xml(
-                    complete_despatch_json, "DespatchAdvice"
-                )
+
+                print("\n===== DEBUG: complete_despatch_json types =====")
+                for key, val in complete_despatch_json.items():
+                    print(f"{key}: {type(val)} -> {val}")
+                    if isinstance(val, dict):
+                        for subkey, subval in val.items():
+                            print(f"  {key}.{subkey}: {type(subval)}")
+
+                try:
+                    despatch_xml = json_to_xml(complete_despatch_json, "DespatchAdvice")
+                except Exception as xml_debug_error:
+                    print("⚠️ Error during XML conversion:", str(xml_debug_error))
+                    raise
             else:
-                # Use the despatch_data directly if available
                 despatch_xml = json_to_xml(despatch_data, "DespatchAdvice")
 
             # 14. Return the complete response with XML content
@@ -254,7 +290,8 @@ async def endpointFunc(
                         "backordering": backordering_result,
                         "shipment": shipment_result,
                         "despatch_line": despatch_line_result
-                    }
+                    },
+                    cls=DateTimeEncoder
                 ),
             }
         finally:

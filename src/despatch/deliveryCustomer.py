@@ -1,5 +1,6 @@
 import os
-from src.mongodb import getOrderInfo, dbConnect
+from src.mongodb import dbConnect
+import json
 
 dirPath = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..")
@@ -15,8 +16,13 @@ async def deliveryCustomer(UUID):
     try:
         orders = db["orders"]
 
-        # Retrieve the order document.
-        data = await getOrderInfo(UUID, orders)
+        # Retrieve the order document directly
+        data = await orders.find_one({"UUID": UUID}) or await orders.find_one({"OrderID": UUID})
+        if not data:
+            return {
+                "statusCode": 404,
+                "body": json.dumps({"error": f"Order {UUID} not found"})
+        }
 
         # is "DeliveryCustomerParty" present; otherwise,
         # assume the returned document is already the delivery data.

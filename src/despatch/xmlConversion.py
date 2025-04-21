@@ -6,6 +6,7 @@
 import datetime
 from lxml import etree
 from src.utils.constants import cacSchema, cbcSchema
+from xml.sax.saxutils import escape
 
 
 def xml_to_json(xml_string):
@@ -197,8 +198,7 @@ def json_to_xml_despatch_advice(json_obj):
 
     # Basic template with header information
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<DespatchAdvice
-    xmlns="urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2"
+<DespatchAdvice xmlns="urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2"
                 xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
                 xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2">
     <cbc:UBLVersionID>2.0</cbc:UBLVersionID>
@@ -208,26 +208,23 @@ def json_to_xml_despatch_advice(json_obj):
     <cbc:ProfileID>
         bpid:urn:oasis:names:draft:bpss:ubl-2-sbs-despatch-advice-notification-draft
     </cbc:ProfileID>
-    <cbc:ID>{json_obj.get('ID', '')}</cbc:ID>
-    <cbc:CopyIndicator>{str(json_obj.get('CopyIndicator', False)).
-                        lower()}</cbc:CopyIndicator>
-    <cbc:UUID>{json_obj.get('UUID', '')}</cbc:UUID>
-    <cbc:IssueDate>{json_obj.get('IssueDate', '')}</cbc:IssueDate>
-    <cbc:DocumentStatusCode>{json_obj.get('DocumentStatusCode',
-                                          'NoStatus')}</cbc:DocumentStatusCode>
+    <cbc:ID>{escape(str(json_obj.get('ID', '')))}</cbc:ID>
+    <cbc:CopyIndicator>{str(json_obj.get('CopyIndicator', False)).lower()}</cbc:CopyIndicator>
+    <cbc:UUID>{escape(str(json_obj.get('UUID', '')))}</cbc:UUID>
+    <cbc:IssueDate>{escape(str(json_obj.get('IssueDate', '')))}</cbc:IssueDate>
+    <cbc:DocumentStatusCode>{escape(str(json_obj.get('DocumentStatusCode', 'NoStatus')))}</cbc:DocumentStatusCode>
     <cbc:DespatchAdviceTypeCode>delivery</cbc:DespatchAdviceTypeCode>
-    <cbc:Note>{json_obj.get('Note', '')}</cbc:Note>"""
+    <cbc:Note>{escape(str(json_obj.get('Note', '')))}</cbc:Note>"""
 
-    # Add OrderReference if available
     if order_reference:
         xml += f"""
     <cac:OrderReference>
-        <cbc:ID>{order_reference.get('ID', '')}</cbc:ID>
-        <cbc:UUID>{order_reference.get('UUID', '')}</cbc:UUID>
-        <cbc:IssueDate>{order_reference.get('IssueDate', '')}</cbc:IssueDate>
+        <cbc:ID>{escape(str(order_reference.get('ID', '')))}</cbc:ID>
+        <cbc:UUID>{escape(str(order_reference.get('UUID', '')))}</cbc:UUID>
+        <cbc:IssueDate>{escape(str(order_reference.get('IssueDate', '')))}</cbc:IssueDate>
     </cac:OrderReference>"""
 
-    # Add DespatchSupplierParty if available
+    # DespatchSupplierParty
     if supplier_party:
         sp_party = supplier_party.get("Party", {})
         sp_postal = sp_party.get("PostalAddress", {})
@@ -236,69 +233,43 @@ def json_to_xml_despatch_advice(json_obj):
 
         xml += f"""
     <cac:DespatchSupplierParty>
-        <cbc:CustomerAssignedAccountID>
-            {supplier_party.get('CustomerAssignedAccountID', '')}
-        </cbc:CustomerAssignedAccountID>
-        <cbc:SupplierAssignedAccountID>
-            {supplier_party.get('SupplierAssignedAccountID', '')}
-        </cbc:SupplierAssignedAccountID>
+        <cbc:CustomerAssignedAccountID>{escape(str(supplier_party.get('CustomerAssignedAccountID', '')))}</cbc:CustomerAssignedAccountID>
+        <cbc:SupplierAssignedAccountID>{escape(str(supplier_party.get('SupplierAssignedAccountID', '')))}</cbc:SupplierAssignedAccountID>
         <cac:Party>
-            <cbc:PartyName>{sp_party.get('PartyName', '')}</cbc:PartyName>
+            <cbc:PartyName>{escape(str(sp_party.get('PartyName', '')))}</cbc:PartyName>
             <cac:PostalAddress>
-                <cbc:StreetName>{sp_postal.
-                                 get('StreetName', '')}</cbc:StreetName>
-                <cbc:BuildingName>{sp_postal.get('BuildingName',
-                                                 '')}</cbc:BuildingName>
-                <cbc:BuildingNumber>
-                    {sp_postal.get('BuildingNumber', '')}
-                </cbc:BuildingNumber>
-                <cbc:CityName>{sp_postal.get('CityName', '')}</cbc:CityName>
-                "<cbc:PostalZone>"
-                f"{sp_postal.get('PostalZone', '')}"
-                "</cbc:PostalZone>"
-                <cbc:CountrySubentity>
-                    {sp_postal.get('CountrySubentity', '')}
-                </cbc:CountrySubentity>
+                <cbc:StreetName>{escape(str(sp_postal.get('StreetName', '')))}</cbc:StreetName>
+                <cbc:BuildingName>{escape(str(sp_postal.get('BuildingName', '')))}</cbc:BuildingName>
+                <cbc:BuildingNumber>{escape(str(sp_postal.get('BuildingNumber', '')))}</cbc:BuildingNumber>
+                <cbc:CityName>{escape(str(sp_postal.get('CityName', '')))}</cbc:CityName>
+                <cbc:PostalZone>{escape(str(sp_postal.get('PostalZone', '')))}</cbc:PostalZone>
+                <cbc:CountrySubentity>{escape(str(sp_postal.get('CountrySubentity', '')))}</cbc:CountrySubentity>
                 <cac:AddressLine>
-                    <cbc:Line>{sp_postal.get('AddressLine', {}).
-                               get('Line', '')}</cbc:Line>
+                    <cbc:Line>{escape(str(sp_postal.get('AddressLine', {}).get('Line', '')))}</cbc:Line>
                 </cac:AddressLine>
                 <cac:Country>
-                    <cbc:IdentificationCode>
-                        {sp_postal.get('Country', {}).
-                         get('IdentificationCode', '')}
-                    </cbc:IdentificationCode>
+                    <cbc:IdentificationCode>{escape(str(sp_postal.get('Country', {}).get('IdentificationCode', '')))}</cbc:IdentificationCode>
                 </cac:Country>
             </cac:PostalAddress>
             <cac:PartyTaxScheme>
-                <cbc:RegistrationName>
-                    {sp_tax.get('RegistrationName', '')}
-                </cbc:RegistrationName>
-                <cbc:CompanyID>{sp_tax.get('CompanyID', '')}</cbc:CompanyID>
-                <cbc:ExemptionReason>
-                    {sp_tax.get('ExemptionReason', '')}
-                </cbc:ExemptionReason>
+                <cbc:RegistrationName>{escape(str(sp_tax.get('RegistrationName', '')))}</cbc:RegistrationName>
+                <cbc:CompanyID>{escape(str(sp_tax.get('CompanyID', '')))}</cbc:CompanyID>
+                <cbc:ExemptionReason>{escape(str(sp_tax.get('ExemptionReason', '')))}</cbc:ExemptionReason>
                 <cac:TaxScheme>
-                    <cbc:ID>{sp_tax.get('TaxScheme',
-                                        {}).get('ID', '')}</cbc:ID>
-                    <cbc:TaxTypeCode>
-                        {sp_tax.get('TaxScheme', {}).get('TaxTypeCode', '')}
-                    </cbc:TaxTypeCode>
+                    <cbc:ID>{escape(str(sp_tax.get('TaxScheme', {}).get('ID', '')))}</cbc:ID>
+                    <cbc:TaxTypeCode>{escape(str(sp_tax.get('TaxScheme', {}).get('TaxTypeCode', '')))}</cbc:TaxTypeCode>
                 </cac:TaxScheme>
             </cac:PartyTaxScheme>
             <cac:Contact>
-                <cbc:Name>{sp_contact.get('Name', '')}</cbc:Name>
-                <cbc:Telephone>{sp_contact.get('Telephone',
-                                               '')}</cbc:Telephone>
-                <cbc:Telefax>{sp_contact.get('Telefax', '')}</cbc:Telefax>
-                <cbc:ElectronicMail>
-                    {sp_contact.get('ElectronicMail', '')}
-                </cbc:ElectronicMail>
+                <cbc:Name>{escape(str(sp_contact.get('Name', '')))}</cbc:Name>
+                <cbc:Telephone>{escape(str(sp_contact.get('Telephone', '')))}</cbc:Telephone>
+                <cbc:Telefax>{escape(str(sp_contact.get('Telefax', '')))}</cbc:Telefax>
+                <cbc:ElectronicMail>{escape(str(sp_contact.get('ElectronicMail', '')))}</cbc:ElectronicMail>
             </cac:Contact>
         </cac:Party>
     </cac:DespatchSupplierParty>"""
 
-    # Add DeliveryCustomerParty if available
+    # DeliveryCustomerParty
     if customer_party:
         cp_party = customer_party.get("Party", {})
         cp_postal = cp_party.get("PostalAddress", {})
@@ -307,115 +278,108 @@ def json_to_xml_despatch_advice(json_obj):
 
         xml += f"""
     <cac:DeliveryCustomerParty>
-        <cbc:CustomerAssignedAccountID>
-            {customer_party.get('CustomerAssignedAccountID', '')}
-        </cbc:CustomerAssignedAccountID>
-        <cbc:SupplierAssignedAccountID>
-            {customer_party.get('SupplierAssignedAccountID', '')}
-        </cbc:SupplierAssignedAccountID>
+        <cbc:CustomerAssignedAccountID>{escape(str(customer_party.get('CustomerAssignedAccountID', '')))}</cbc:CustomerAssignedAccountID>
+        <cbc:SupplierAssignedAccountID>{escape(str(customer_party.get('SupplierAssignedAccountID', '')))}</cbc:SupplierAssignedAccountID>
         <cac:Party>
-            <cbc:PartyName>{cp_party.get('PartyName', '')}</cbc:PartyName>
+            <cbc:PartyName>{escape(str(cp_party.get('PartyName', '')))}</cbc:PartyName>
             <cac:PostalAddress>
-                <cbc:StreetName>{cp_postal.get('StreetName',
-                                               '')}</cbc:StreetName>
-                <cbc:BuildingName>{cp_postal.
-                                   get('BuildingName', '')}</cbc:BuildingName>
-                <cbc:BuildingNumber>
-                    {cp_postal.get('BuildingNumber', '')}
-                </cbc:BuildingNumber>
-                <cbc:CityName>{cp_postal.get('CityName', '')}</cbc:CityName>
-                <cbc:PostalZone>{cp_postal.
-                                 get('PostalZone', '')}</cbc:PostalZone>
-                <cbc:CountrySubentity>
-                    {cp_postal.get('CountrySubentity', '')}
-                </cbc:CountrySubentity>
+                <cbc:StreetName>{escape(str(cp_postal.get('StreetName', '')))}</cbc:StreetName>
+                <cbc:BuildingName>{escape(str(cp_postal.get('BuildingName', '')))}</cbc:BuildingName>
+                <cbc:BuildingNumber>{escape(str(cp_postal.get('BuildingNumber', '')))}</cbc:BuildingNumber>
+                <cbc:CityName>{escape(str(cp_postal.get('CityName', '')))}</cbc:CityName>
+                <cbc:PostalZone>{escape(str(cp_postal.get('PostalZone', '')))}</cbc:PostalZone>
+                <cbc:CountrySubentity>{escape(str(cp_postal.get('CountrySubentity', '')))}</cbc:CountrySubentity>
                 <cac:AddressLine>
-                    <cbc:Line>{cp_postal.get('AddressLine', {}).
-                               get('Line', '')}</cbc:Line>
+                    <cbc:Line>{escape(str(cp_postal.get('AddressLine', {}).get('Line', '')))}</cbc:Line>
                 </cac:AddressLine>
                 <cac:Country>
-                    <cbc:IdentificationCode>
-                        {cp_postal.get('Country', {}).
-                         get('IdentificationCode', '')}
-                    </cbc:IdentificationCode>
+                    <cbc:IdentificationCode>{escape(str(cp_postal.get('Country', {}).get('IdentificationCode', '')))}</cbc:IdentificationCode>
                 </cac:Country>
             </cac:PostalAddress>
             <cac:PartyTaxScheme>
-                <cbc:RegistrationName>
-                    {cp_tax.get('RegistrationName', '')}
-                </cbc:RegistrationName>
-                <cbc:CompanyID>{cp_tax.get('CompanyID', '')}</cbc:CompanyID>
-                <cbc:ExemptionReason>
-                    {cp_tax.get('ExemptionReason', '')}
-                </cbc:ExemptionReason>
+                <cbc:RegistrationName>{escape(str(cp_tax.get('RegistrationName', '')))}</cbc:RegistrationName>
+                <cbc:CompanyID>{escape(str(cp_tax.get('CompanyID', '')))}</cbc:CompanyID>
+                <cbc:ExemptionReason>{escape(str(cp_tax.get('ExemptionReason', '')))}</cbc:ExemptionReason>
                 <cac:TaxScheme>
-                    <cbc:ID>{cp_tax.get('TaxScheme', {}).
-                             get('ID', '')}</cbc:ID>
-                    <cbc:TaxTypeCode>
-                        {cp_tax.get('TaxScheme', {}).get('TaxTypeCode', '')}
-                    </cbc:TaxTypeCode>
+                    <cbc:ID>{escape(str(cp_tax.get('TaxScheme', {}).get('ID', '')))}</cbc:ID>
+                    <cbc:TaxTypeCode>{escape(str(cp_tax.get('TaxScheme', {}).get('TaxTypeCode', '')))}</cbc:TaxTypeCode>
                 </cac:TaxScheme>
             </cac:PartyTaxScheme>
             <cac:Contact>
-                <cbc:Name>{cp_contact.get('Name', '')}</cbc:Name>
-                <cbc:Telephone>{cp_contact.get('Telephone',
-                                               '')}</cbc:Telephone>
-                <cbc:Telefax>{cp_contact.get('Telefax', '')}</cbc:Telefax>
-                <cbc:ElectronicMail>
-                    {cp_contact.get('ElectronicMail', '')}
-                </cbc:ElectronicMail>
+                <cbc:Name>{escape(str(cp_contact.get('Name', '')))}</cbc:Name>
+                <cbc:Telephone>{escape(str(cp_contact.get('Telephone', '')))}</cbc:Telephone>
+                <cbc:Telefax>{escape(str(cp_contact.get('Telefax', '')))}</cbc:Telefax>
+                <cbc:ElectronicMail>{escape(str(cp_contact.get('ElectronicMail', '')))}</cbc:ElectronicMail>
             </cac:Contact>
         </cac:Party>
     </cac:DeliveryCustomerParty>"""
 
-    # Add Shipment section if available
+    # Shipment
     shipment = json_obj.get("Shipment", {})
-    if shipment:
+    gross_weight = shipment.get("GrossWeightMeasure", {})
+    if not isinstance(gross_weight, dict):
+        gross_weight = {}
+
+    if isinstance(shipment, dict) and shipment:
         xml += f"""
     <cac:Shipment>
-        <cbc:ID>{shipment.get('ID', '')}</cbc:ID>
-        <cbc:HandlingCode>{shipment.get('HandlingCode', '')}</cbc:HandlingCode>
-        <cbc:GrossWeightMeasure unitCode="{
-            shipment.get('GrossWeightMeasure', {}).get('unitCode', '')
-        }">{
-            shipment.get('GrossWeightMeasure', {}).get('value', '')
-        }</cbc:GrossWeightMeasure>
+        <cbc:ID>{escape(str(shipment.get('ID', '')))}</cbc:ID>
+        <cbc:HandlingCode>{escape(str(shipment.get('HandlingCode', '')))}</cbc:HandlingCode>
+        <cbc:GrossWeightMeasure unitCode="{escape(str(gross_weight.get('unitCode', '')))}">
+            {escape(str(gross_weight.get('value', '')))}
+        </cbc:GrossWeightMeasure>
         <cbc:TotalTransportHandlingUnitQuantity>
-            {shipment.get('TotalTransportHandlingUnitQuantity', '')}
+            {escape(str(shipment.get('TotalTransportHandlingUnitQuantity', '')))}
         </cbc:TotalTransportHandlingUnitQuantity>
     </cac:Shipment>"""
 
-    # Add DespatchLine sections if available
+    # DespatchLine
     despatch_lines = json_obj.get("DespatchLine", [])
+    if isinstance(despatch_lines, dict):
+        despatch_lines = [despatch_lines]
+    elif not isinstance(despatch_lines, list):
+        despatch_lines = []
+
     for line in despatch_lines:
+        if not isinstance(line, dict):
+            continue
+
         item = line.get("Item", {})
+        if not isinstance(item, dict):
+            item = {}
+
+        delivered_quantity = line.get("DeliveredQuantity", {})
+        if not isinstance(delivered_quantity, dict):
+            delivered_quantity = {}
+
+        order_line_ref = line.get("OrderLineReference", {})
+        if not isinstance(order_line_ref, dict):
+            order_line_ref = {}
+
+        seller_id = item.get("SellersItemIdentification", {})
+        if not isinstance(seller_id, dict):
+            seller_id = {}
+
         xml += f"""
     <cac:DespatchLine>
-        <cbc:ID>{line.get('ID', '')}</cbc:ID>
-        <cbc:DeliveredQuantity unitCode="{
-            line.get('DeliveredQuantity', {}).get('unitCode', '')
-        }">{
-            line.get('DeliveredQuantity', {}).get('value', '')
-        }</cbc:DeliveredQuantity>
+        <cbc:ID>{escape(str(line.get('ID', '')))}</cbc:ID>
+        <cbc:DeliveredQuantity unitCode="{escape(str(delivered_quantity.get('unitCode', '')))}">
+            {escape(str(delivered_quantity.get('value', '')))}
+        </cbc:DeliveredQuantity>
         <cac:OrderLineReference>
-            "<cbc:LineID>"
-            f"{line.get('OrderLineReference', {}).get('LineID', '')}"
-            "</cbc:LineID>"
+            <cbc:LineID>{escape(str(order_line_ref.get('LineID', '')))}</cbc:LineID>
         </cac:OrderLineReference>
         <cac:Item>
-            <cbc:Name>{item.get('Name', '')}</cbc:Name>
+            <cbc:Name>{escape(item.get('Name', ''))}</cbc:Name>
             <cac:SellersItemIdentification>
-                <cbc:ID>
-                    {item.get('SellersItemIdentification', {}).get('ID', '')}
-                </cbc:ID>
+                <cbc:ID>{escape(str(seller_id.get('ID', '')))}</cbc:ID>
             </cac:SellersItemIdentification>
         </cac:Item>
     </cac:DespatchLine>"""
 
-    # Close the root element
+    # Close root tag
     xml += """
 </DespatchAdvice>"""
-
     return xml
 
 

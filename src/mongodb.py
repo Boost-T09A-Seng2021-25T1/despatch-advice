@@ -83,18 +83,21 @@ async def addOrder(data: dict, db: AsyncIOMotorCollection):
 # ============================================
 
 
-async def getOrderInfo(orderUUID: str, db: AsyncIOMotorCollection):
+async def getOrderInfo(orderUUID: str, db):
+    print("🧨 getOrderInfo CALLED with type:", type(db))
+
     try:
-        res = await db.orders.find_one({"UUID": orderUUID})
+        orders = db["orders"]
+        print("✅ Using collection:", orders)
+        res = await orders.find_one({"UUID": orderUUID})
         if not res:
-            # Try looking up by OrderID too, as some tests might be using this
-            res = await db.orders.find_one({"OrderID": orderUUID})
+            res = await orders.find_one({"OrderID": orderUUID})
             if not res:
                 raise ValueError(f"{orderUUID} not found.")
         return res
     except Exception as e:
-        print(f"Error retrieving order: {str(e)}")
-        return None
+        print("🔥 Exception inside getOrderInfo:", str(e))
+        raise
 
 
 # ===========================================

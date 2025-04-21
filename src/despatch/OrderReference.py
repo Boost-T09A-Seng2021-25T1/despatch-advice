@@ -71,7 +71,7 @@ async def create_order_reference(
         raise InvalidOrderReferenceError("IDs must be strings")
 
     # Check if order exists
-    existing_order = await collection.find_one({"ID": order_id})
+    existing_order = await collection.find_one({"OrderID": order_id})
     if not existing_order:
         raise OrderNotFoundError(f"Order {order_id} not found")
 
@@ -87,7 +87,7 @@ async def create_order_reference(
 
     # Perform upsert and return the document
     result = await collection.find_one_and_update(
-        {"ID": order_id},
+        {"OrderID": order_id},
         update_data,
         upsert=True,
         return_document=True

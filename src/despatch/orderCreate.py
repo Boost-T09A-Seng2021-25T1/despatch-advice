@@ -1,7 +1,7 @@
 import uuid
 import datetime
 import json
-from src.mongodb import addOrder, getOrderInfo, dbConnect
+from src.mongodb import addOrder, dbConnect
 from src.despatch.xmlConversion import xml_to_json
 
 
@@ -24,6 +24,10 @@ async def validate_order_document(document, format_type="json"):
         if format_type.lower() == "xml":
             try:
                 converted_document = xml_to_json(document)
+                if not isinstance(converted_document, dict):
+                    validation_issues.append("XML conversion did not return a valid JSON object")
+                    return False, validation_issues, None
+
             except Exception as e:
                 validation_issues.append(f"XML parsing error: {str(e)}")
                 return False, validation_issues, None
@@ -94,8 +98,7 @@ async def create_order(event_body):
                 "statusCode": 400,
                 "body": json.dumps(
                     {
-                        "error": "Invalid request format: "
-                        "missing required fields"
+                        "error": "Invalid request format: missing required fields"
                     }
                 ),
             }
@@ -116,6 +119,42 @@ async def create_order(event_body):
             "Status": "Created",
             "CreationDate": current_time,
             "LastModified": current_time,
+            "SellerSupplierParty": {
+                "CustomerAssignedAccountID": "SUPP-123",
+                "SupplierAssignedAccountID": "SUPP-456",
+                "Party": {
+                    "PartyName": "Test Supplier",
+                    "PostalAddress": {
+                    "StreetName": "123 Supply Rd",
+                    "BuildingName": "Supply House",
+                    "BuildingNumber": "1",
+                    "CityName": "Supplyville",
+                    "PostalZone": "12345",
+                    "CountrySubentity": "NSW",
+                    "AddressLine": {
+                        "Line": "Suite 3, Level 2"
+                    },
+                    "Country": {
+                        "IdentificationCode": "AU"
+                    }
+                    },
+                    "PartyTaxScheme": {
+                    "RegistrationName": "Test Pty Ltd",
+                    "CompanyID": "A1234567B",
+                    "ExemptionReason": "None",
+                    "TaxScheme": {
+                        "ID": "GST",
+                        "TaxTypeCode": "GST"
+                    }
+                    },
+                    "Contact": {
+                    "Name": "John Supplier",
+                    "Telephone": "+61 400 123 456",
+                    "Telefax": "+61 400 654 321",
+                    "ElectronicMail": "supplier@example.com"
+                    }
+                }
+            }
         }
 
         client, db = await dbConnect()
@@ -162,7 +201,15 @@ async def validate_order(order_id):
     try:
         client, db = await dbConnect()
         try:
-            order = await getOrderInfo(order_id, db)
+            orders_collection = db["orders"]
+            order = await orders_collection.find_one(
+                {"OrderID": order_id}) or await orders_collection.find_one({"UUID": order_id}
+            )
+            if not order:
+                return {
+                    "statusCode": 404,
+                    "body": json.dumps({"error": "Order does not exist"})
+                }
 
             if not order:
                 return {
@@ -236,7 +283,15 @@ async def get_order(order_id):
     try:
         client, db = await dbConnect()
         try:
-            order = await getOrderInfo(order_id, db)
+            orders_collection = db["orders"]
+            order = await orders_collection.find_one(
+                {"OrderID": order_id}) or await orders_collection.find_one({"UUID": order_id}
+            )
+            if not order:
+                return {
+                    "statusCode": 404,
+                    "body": json.dumps({"error": "Order does not exist"})
+            }
 
             if not order:
                 return {
@@ -278,7 +333,14 @@ async def check_stock(order_id):
     try:
         client, db = await dbConnect()
         try:
-            order = await getOrderInfo(order_id, db)
+            order = await orders_collection.find_one(
+                {"OrderID": order_id}) or await orders_collection.find_one({"UUID": order_id}
+            )
+            if not order:
+                return {
+                    "statusCode": 404,
+                    "body": json.dumps({"error": "Order does not exist"})
+            }
 
             if not order:
                 return {
