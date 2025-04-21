@@ -8,6 +8,8 @@ import Logo from "@/components/ui/Logo";
 export default function CreateDespatch() {
   const [file, setFile] = useState(null);
   const [previewContent, setPreviewContent] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -21,11 +23,45 @@ export default function CreateDespatch() {
 
   const handleFileSelect = (selectedFile) => {
     setFile(selectedFile);
+    setError("");
     const reader = new FileReader();
     reader.onload = (e) => {
       setPreviewContent(e.target?.result);
     };
     reader.readAsText(selectedFile);
+  };
+
+  const handleSubmit = async () => {
+    if (!previewContent) {
+      setError("Please upload a valid XML file first.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(
+        "https://1:067310738151:uj1acngyia.execute-api.us-east-1.amazonaws.com/v2/v2/despatch/generate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ xmlDoc: previewContent }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data?.despatch_xml) {
+        setPreviewContent(data.despatch_xml);
+      } else {
+        setError(data?.error || "Something went wrong.");
+      }
+    } catch (err) {
+      setError("Network error. Try again later.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -79,6 +115,16 @@ export default function CreateDespatch() {
               </Button>
               {file && (
                 <p className="mt-4 text-[#A193EE]">Selected: {file.name}</p>
+              )}
+              <Button
+                onClick={handleSubmit}
+                className="mt-6 bg-[#6EE7B7] hover:bg-[#34D399] text-black"
+                disabled={loading}
+              >
+                {loading ? "Processing..." : "Generate Despatch XML"}
+              </Button>
+              {error && (
+                <p className="text-red-400 mt-2 text-center">{error}</p>
               )}
             </div>
 
