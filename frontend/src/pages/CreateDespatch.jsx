@@ -64,6 +64,14 @@ export default function CreateDespatch() {
     }
   };
 
+  const handleSendEmail = () => {
+    alert("Send Email functionality not yet implemented.");
+  };
+
+  const handleConvertPDF = () => {
+    alert("Convert to PDF functionality not yet implemented.");
+  };
+
   return (
     <>
       <Helmet>
@@ -71,6 +79,7 @@ export default function CreateDespatch() {
       </Helmet>
 
       <div className="flex flex-col min-h-screen bg-black">
+        {/* Header */}
         <header className="w-full bg-[linear-gradient(180deg,#2B2A2A_0.01%,#000_98.08%)] py-4">
           <div className="max-w-none mx-auto px-5">
             <div className="flex items-center justify-between">
@@ -87,16 +96,34 @@ export default function CreateDespatch() {
           </div>
         </header>
 
-        <main className="flex-grow p-6">
-          <div className="max-w-6xl mx-auto grid grid-cols-2 gap-8">
+        {/* Main Body */}
+        <main className="flex-grow flex">
+          {/* Left: Preview Panel */}
+          <div className="flex-1 bg-[#2B2A2A] p-6 overflow-auto">
+            <h3 className="text-white text-xl mb-4">Document Preview</h3>
+            <div className="bg-[#1A1F2C] p-4 rounded-md h-[80vh] overflow-auto">
+              {previewContent ? (
+                <pre className="text-[#D9D9D9] text-sm whitespace-pre-wrap">
+                  {previewContent}
+                </pre>
+              ) : (
+                <p className="text-[#A193EE] text-center mt-[150px]">
+                  Upload a file to see the preview
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Upload + Buttons Sidebar */}
+          <div className="w-[300px] bg-[#1A1F2C] p-6 border-l border-[#A193EE] flex flex-col">
             <div
               onDragOver={handleDragOver}
               onDrop={handleDrop}
-              className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-[#A193EE] rounded-lg bg-[#2B2A2A] min-h-[400px] hover:border-[#9F91E9] transition-colors"
+              className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[#A193EE] rounded-lg bg-[#2B2A2A] hover:border-[#9F91E9] transition-colors mb-6"
             >
-              <FileText size={48} className="text-[#A193EE] mb-4" />
-              <p className="text-white text-center mb-4">
-                Drag and drop your XML file here or
+              <FileText size={32} className="text-[#A193EE] mb-2" />
+              <p className="text-white text-sm text-center mb-2">
+                Drag and drop
               </p>
               <input
                 type="file"
@@ -109,39 +136,43 @@ export default function CreateDespatch() {
               />
               <Button
                 onClick={() => document.getElementById("file-upload")?.click()}
-                className="bg-[#9F91E9] hover:bg-[#8F81D9]"
+                className="bg-[#9F91E9] hover:bg-[#8F81D9] text-xs px-4 py-2"
               >
                 Select File
               </Button>
               {file && (
-                <p className="mt-4 text-[#A193EE]">Selected: {file.name}</p>
-              )}
-              <Button
-                onClick={handleSubmit}
-                className="mt-6 bg-[#6EE7B7] hover:bg-[#34D399] text-black"
-                disabled={loading}
-              >
-                {loading ? "Processing..." : "Generate Despatch XML"}
-              </Button>
-              {error && (
-                <p className="text-red-400 mt-2 text-center">{error}</p>
+                <p className="mt-2 text-[#A193EE] text-xs text-center">
+                  {file.name}
+                </p>
               )}
             </div>
 
-            <Card className="bg-[#2B2A2A] border-[#A193EE] p-6">
-              <h3 className="text-white text-xl mb-4">Document Preview</h3>
-              <div className="bg-[#1A1F2C] p-4 rounded-md h-[400px] overflow-auto">
-                {previewContent ? (
-                  <pre className="text-[#D9D9D9] text-sm whitespace-pre-wrap">
-                    {previewContent}
-                  </pre>
-                ) : (
-                  <p className="text-[#A193EE] text-center mt-[150px]">
-                    Upload a file to see the preview
-                  </p>
-                )}
-              </div>
-            </Card>
+            {/* Action Buttons */}
+            <Button
+              onClick={handleSubmit}
+              className="w-full mb-4 bg-[#6EE7B7] hover:bg-[#34D399] text-black"
+              disabled={loading}
+            >
+              {loading ? "Processing..." : "Generate Despatch XML"}
+            </Button>
+
+            <Button
+              onClick={handleSendEmail}
+              className="w-full mb-4 bg-[#9F91E9] hover:bg-[#8F81D9]"
+            >
+              Send Email
+            </Button>
+
+            <Button
+              onClick={handleConvertPDF}
+              className="w-full bg-[#FBBF24] hover:bg-[#F59E0B] text-black"
+            >
+              Convert to PDF
+            </Button>
+
+            {error && (
+              <p className="text-red-400 mt-4 text-center text-sm">{error}</p>
+            )}
           </div>
         </main>
       </div>
