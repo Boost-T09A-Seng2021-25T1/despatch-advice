@@ -27,8 +27,6 @@ const SignIn = ({ setUser }) => {
     setIsLoading(true);
 
     const decoded = jwtDecode(idToken);
-    console.log("Google ID Token:", idToken);
-    console.log("Decoded Google User:", decoded);
 
     try {
       const res = await fetch(
@@ -43,8 +41,6 @@ const SignIn = ({ setUser }) => {
       );
 
       const rawText = await res.text();
-      console.log("Status Code:", res.status);
-      console.log("Raw Response:", rawText);
 
       if (!res.ok) {
         alert("Login failed: " + rawText);
