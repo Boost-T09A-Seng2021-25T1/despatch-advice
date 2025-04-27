@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
-import { FileText, X } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Logo from "@/components/ui/Logo";
@@ -10,8 +10,6 @@ export default function CreateDespatch() {
   const [previewContent, setPreviewContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailInput, setEmailInput] = useState("");
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -66,59 +64,8 @@ export default function CreateDespatch() {
     }
   };
 
-  const handleSendEmailClick = () => {
-    setShowEmailModal(true);
-  };
-
-  const handleSendEmailConfirm = async () => {
-    if (!emailInput || !previewContent) {
-      setError("Please provide an email and generate XML first.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError("");
-
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(previewContent, "text/xml");
-
-      const idElement = xmlDoc.getElementsByTagName("cbc:ID")[0];
-      const issueDateElement = xmlDoc.getElementsByTagName("cbc:IssueDate")[0];
-
-      const despatchId = idElement?.textContent || "UnknownID";
-      const issueDate = issueDateElement?.textContent || "UnknownDate";
-
-      const response = await fetch(
-        "https://your-api-url.amazonaws.com/v2/send-email",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: emailInput,
-            despatch_info: {
-              ID: despatchId,
-              IssueDate: issueDate,
-            },
-            attachment_base64: btoa(previewContent),
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("Email sent successfully!");
-        setShowEmailModal(false);
-        setEmailInput("");
-      } else {
-        setError(data.error || "Something went wrong while sending email.");
-      }
-    } catch (err) {
-      setError("Network error. Try again later.");
-    } finally {
-      setLoading(false);
-    }
+  const handleSendEmail = () => {
+    alert("Send Email functionality not yet implemented.");
   };
 
   const handleConvertPDF = () => {
@@ -130,34 +77,6 @@ export default function CreateDespatch() {
       <Helmet>
         <title>Create Despatch XML - BoostXchange</title>
       </Helmet>
-
-      {/* Email Modal */}
-      {showEmailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-[#2B2A2A] p-8 rounded-lg w-[400px] max-w-[90%]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-white text-lg">Send Email</h2>
-              <button onClick={() => setShowEmailModal(false)}>
-                <X className="text-white" />
-              </button>
-            </div>
-            <input
-              type="email"
-              placeholder="Enter recipient email"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              className="w-full p-2 mb-4 rounded bg-[#1A1F2C] text-white border border-[#A193EE]"
-            />
-            <Button
-              onClick={handleSendEmailConfirm}
-              className="w-full bg-[#6EE7B7] hover:bg-[#34D399] text-black"
-              disabled={loading}
-            >
-              {loading ? "Sending..." : "Send Email"}
-            </Button>
-          </div>
-        </div>
-      )}
 
       <div className="flex flex-col min-h-screen bg-black">
         {/* Header */}
@@ -238,7 +157,7 @@ export default function CreateDespatch() {
             </Button>
 
             <Button
-              onClick={handleSendEmailClick}
+              onClick={handleSendEmail}
               className="w-full mb-4 bg-[#9F91E9] hover:bg-[#8F81D9]"
             >
               Send Email
