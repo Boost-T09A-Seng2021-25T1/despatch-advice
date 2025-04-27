@@ -3,78 +3,62 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 import os
-from dotenv import load_dotenv
 import logging
+from dotenv import load_dotenv
 
-# Configure logging
+# Setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
+# Load env vars
 load_dotenv(dotenv_path=os.path.join(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config")),
     ".env"
-    )
-)
-
+))
 
 async def send_despatch_email(recipient_email, subject, body, attachment=None):
-    """
-    Send an email with optional attachment
-
-    Args:
-        recipient_email (str): Email address of the recipient
-        subject (str): Email subject
-        body (str): Email body (HTML format)
-        attachment (tuple, optional): Tuple of (filename, file_content_bytes)
-
-    Returns:
-        bool: True if email sent successfully, False otherwise
-    """
     try:
-        # Email configuration (from environment variables)
         smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", 587))
         sender_email = os.getenv("SENDER_EMAIL")
         sender_password = os.getenv("SENDER_PASSWORD")
 
         if not sender_email or not sender_password:
-            raise ValueError(
-                "Email credentials not configured in environment variables"
-            )
+            raise ValueError("Missing sender email/password environment variables")
 
-        # Create message
+        # Build email
         message = MIMEMultipart()
-        message["From"] = sender_email
+        message["From"] = f"BoostXchange <{sender_email}>"
         message["To"] = recipient_email
         message["Subject"] = subject
 
-        # Add body
         message.attach(MIMEText(body, "html"))
 
-        # Add attachment if provided
         if attachment:
             filename, content = attachment
-            part = MIMEApplication(content, Name=filename)
-            part['Content-Disposition'] = f'attachment; filename="{filename}"'
+            part = MIMEApplication(content)
+            part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
             message.attach(part)
 
-        # Send email
+        # Send
         await aiosmtplib.send(
             message,
             hostname=smtp_server,
             port=smtp_port,
             username=sender_email,
             password=sender_password,
-            use_tls=True
+            start_tls=True,
+            timeout=15
         )
 
-        logger.info(f"Email sent successfully to {recipient_email}")
+        logger.info(f"Email sent to {recipient_email}")
         return True
 
     except Exception as e:
-        logger.error(f"Error sending email: {str(e)}")
+        logger.error(f"Email sending error: {str(e)}")
         return False
+
+
 
 
 def create_despatch_email_body(despatch_data):

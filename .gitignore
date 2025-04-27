@@ -17,3 +17,4 @@ utils/__pycache__/
 /package/
 /lambda_package/
 /despatch_endp/
+/email_endp/
