@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
-import { FileText } from "lucide-react";
+import { FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Logo from "@/components/ui/Logo";
@@ -10,6 +10,8 @@ export default function CreateDespatch() {
   const [previewContent, setPreviewContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -64,8 +66,61 @@ export default function CreateDespatch() {
     }
   };
 
-  const handleSendEmail = () => {
-    alert("Send Email functionality not yet implemented.");
+  const handleSendEmailClick = () => {
+    setShowEmailModal(true);
+  };
+
+  const handleSendEmailConfirm = async () => {
+    if (!emailInput || !previewContent) {
+      setError("Please provide an email and generate XML first.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(previewContent, "text/xml");
+
+      const idElement = xmlDoc.getElementsByTagName("cbc:ID")[0];
+      const issueDateElement = xmlDoc.getElementsByTagName("cbc:IssueDate")[0];
+
+      const despatchId = idElement?.textContent || "UnknownID";
+      const issueDate = issueDateElement?.textContent || "UnknownDate";
+
+      const response = await fetch(
+        "https://uj1acngyia.execute-api.us-east-1.amazonaws.com/v2/sendEmail",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: emailInput,
+            despatch_info: {
+              ID: despatchId,
+              IssueDate: issueDate,
+            },
+            attachment_base64: btoa(
+              unescape(encodeURIComponent(previewContent))
+            ),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`Email sent successfully to ${emailInput}!`);
+        setShowEmailModal(false);
+        setEmailInput("");
+      } else {
+        setError(data?.error || "Something went wrong while sending email.");
+      }
+    } catch (err) {
+      setError("Network error. Try again later.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConvertPDF = () => {
@@ -78,8 +133,36 @@ export default function CreateDespatch() {
         <title>Create Despatch XML - BoostXchange</title>
       </Helmet>
 
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-[#2B2A2A] p-8 rounded-lg w-[400px] max-w-[90%]">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-white text-lg">Send Email</h2>
+              <button onClick={() => setShowEmailModal(false)}>
+                <X className="text-white" />
+              </button>
+            </div>
+            <input
+              type="email"
+              placeholder="Enter recipient email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              className="w-full p-2 mb-4 rounded bg-[#1A1F2C] text-white border border-[#A193EE]"
+            />
+            <Button
+              onClick={handleSendEmailConfirm}
+              className="w-full bg-[#6EE7B7] hover:bg-[#34D399] text-black"
+              disabled={loading}
+            >
+              {loading ? "Sending..." : "Send Email"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Page */}
       <div className="flex flex-col min-h-screen bg-black">
-        {/* Header */}
         <header className="w-full bg-[linear-gradient(180deg,#2B2A2A_0.01%,#000_98.08%)] py-4">
           <div className="max-w-none mx-auto px-5">
             <div className="flex items-center justify-between">
@@ -96,9 +179,8 @@ export default function CreateDespatch() {
           </div>
         </header>
 
-        {/* Main Body */}
         <main className="flex-grow flex">
-          {/* Left: Preview Panel */}
+          {/* Left Panel */}
           <div className="flex-1 bg-[#2B2A2A] p-6 overflow-auto">
             <h3 className="text-white text-xl mb-4">Document Preview</h3>
             <div className="bg-[#1A1F2C] p-4 rounded-md h-[80vh] overflow-auto">
@@ -114,7 +196,7 @@ export default function CreateDespatch() {
             </div>
           </div>
 
-          {/* Right: Upload + Buttons Sidebar */}
+          {/* Right Sidebar */}
           <div className="w-[300px] bg-[#1A1F2C] p-6 border-l border-[#A193EE] flex flex-col">
             <div
               onDragOver={handleDragOver}
@@ -147,7 +229,7 @@ export default function CreateDespatch() {
               )}
             </div>
 
-            {/* Action Buttons */}
+            {/* Buttons */}
             <Button
               onClick={handleSubmit}
               className="w-full mb-4 bg-[#6EE7B7] hover:bg-[#34D399] text-black"
@@ -157,7 +239,7 @@ export default function CreateDespatch() {
             </Button>
 
             <Button
-              onClick={handleSendEmail}
+              onClick={handleSendEmailClick}
               className="w-full mb-4 bg-[#9F91E9] hover:bg-[#8F81D9]"
             >
               Send Email
