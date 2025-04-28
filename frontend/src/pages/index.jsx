@@ -6,6 +6,8 @@ import FeaturesSection from "@/components/home/FeaturesSection";
 import ConversionSection from "@/components/home/ConversionSection";
 import Logo from "@/components/ui/Logo";
 
+// Certain parts of this code was generated using AI tools
+
 const Index = () => {
   return (
     <>

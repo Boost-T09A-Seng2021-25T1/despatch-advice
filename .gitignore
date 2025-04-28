@@ -16,3 +16,5 @@ utils/__pycache__/
 /frontend/.env
 /package/
 /lambda_package/
+/despatch_endp/
+/email_endp/

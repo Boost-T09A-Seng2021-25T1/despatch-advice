@@ -10,6 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import LoggedOut from "./pages/LoggedOut";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useState, useEffect } from "react";
+import CreateDespatch from "./pages/CreateDespatch";
+
+// Certain parts of this code was generated using AI tools
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -30,6 +33,7 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/signin" element={<SignIn setUser={setUser} />} />
                 <Route path="/dashboard" element={<Dashboard user={user} />} />
+                <Route path="/create-despatch" element={<CreateDespatch />} />
                 <Route path="/logged-out" element={<LoggedOut />} />
               </Routes>
             </BrowserRouter>

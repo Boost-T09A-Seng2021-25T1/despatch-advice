@@ -13,6 +13,8 @@ import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 
+// Certain parts of this code was generated using AI tools
+
 const SignIn = ({ setUser }) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -27,8 +29,6 @@ const SignIn = ({ setUser }) => {
     setIsLoading(true);
 
     const decoded = jwtDecode(idToken);
-    console.log("Google ID Token:", idToken);
-    console.log("Decoded Google User:", decoded);
 
     try {
       const res = await fetch(
@@ -43,8 +43,6 @@ const SignIn = ({ setUser }) => {
       );
 
       const rawText = await res.text();
-      console.log("Status Code:", res.status);
-      console.log("Raw Response:", rawText);
 
       if (!res.ok) {
         alert("Login failed: " + rawText);
@@ -105,7 +103,7 @@ const SignIn = ({ setUser }) => {
                       d="M4 12a8 8 0 018-8v8H4z"
                     ></path>
                   </svg>
-                  Processing login...
+                  Logging in...
                 </div>
               ) : (
                 <GoogleLogin
