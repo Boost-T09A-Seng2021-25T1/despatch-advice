@@ -2,7 +2,7 @@ import json
 import os
 import logging
 import base64
-import aiosmtplib
+import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -11,17 +11,19 @@ from email.mime.application import MIMEApplication
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Environment Variables (no need to load .env in Lambda, just set in Lambda console)
+# Environment Variables
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
+
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
     "Access-Control-Allow-Headers": "Content-Type"
 }
+
 
 async def send_despatch_email(recipient_email, subject, body, attachment=None):
     """
@@ -44,7 +46,7 @@ async def send_despatch_email(recipient_email, subject, body, attachment=None):
             part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
             message.attach(part)
 
-        await aiosmtplib.send(
+        await smtplib.send(
             message,
             hostname=SMTP_SERVER,
             port=SMTP_PORT,
@@ -60,6 +62,7 @@ async def send_despatch_email(recipient_email, subject, body, attachment=None):
     except Exception as e:
         logger.error(f"Email sending error: {str(e)}")
         return False
+
 
 def create_despatch_email_body(despatch_info):
     """
@@ -103,56 +106,62 @@ def create_despatch_email_body(despatch_info):
     """
     return html_body
 
-async def lambda_handler(event, context):
-    """
-    Lambda entry point.
-    """
+
+def lambda_handler(event, context):
     try:
-        if event.get("httpMethod") == "OPTIONS":
-            return {
-                "statusCode": 200,
-                "headers": CORS_HEADERS,
-                "body": json.dumps({"message": "CORS preflight OK"})
-            }
+        # Debugging prints
+        print("Raw event body:", event)
 
         body = json.loads(event.get("body", "{}"))
-        recipient_email = body.get("email")
-        despatch_info = body.get("despatch_info", {})
-        attachment_base64 = body.get("attachment_base64")
 
-        if not recipient_email:
+        recipient_email = body.get("email")
+        subject = body.get("subject", "Despatch Advice")
+        despatch_info = body.get("despatch_info", {})
+        despatch_xml_base64 = body.get("attachment_base64")
+
+        if not recipient_email or not despatch_xml_base64:
+            print("Missing required fields.")
             return {
                 "statusCode": 400,
                 "headers": CORS_HEADERS,
-                "body": json.dumps({"error": "Missing recipient email"})
+                "body": json.dumps({"error": "Missing required fields"})
             }
 
-        subject = f"Despatch Advice - {despatch_info.get('ID', 'Unknown')}"
-        email_body = create_despatch_email_body(despatch_info)
+        despatch_xml_bytes = base64.b64decode(despatch_xml_base64)
+        body_html = create_despatch_email_body(despatch_info)
 
-        attachment = None
-        if attachment_base64:
-            attachment = ("despatch.pdf", base64.b64decode(attachment_base64))
+        # Build Email
+        message = MIMEMultipart()
+        message["From"] = "BoostXchange <boostxchange1@gmail.com>"
+        message["To"] = recipient_email
+        message["Subject"] = subject
 
-        success = await send_despatch_email(recipient_email, subject, email_body, attachment)
+        message.attach(MIMEText(body_html, "html"))
+        attachment = MIMEApplication(despatch_xml_bytes, Name="DespatchAdvice.xml")
+        attachment.add_header('Content-Disposition', 'attachment', filename="DespatchAdvice.xml")
+        message.attach(attachment)
 
-        if success:
-            return {
-                "statusCode": 200,
-                "headers": CORS_HEADERS,
-                "body": json.dumps({"message": "Email sent successfully"})
-            }
-        else:
-            return {
-                "statusCode": 500,
-                "headers": CORS_HEADERS,
-                "body": json.dumps({"error": "Failed to send email"})
-            }
+        # SMTP Send
+        print("Connecting to SMTP server...")
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.send_message(message)
+
+        logger.info(f"Email successfully sent to {recipient_email}")
+        return {
+            "statusCode": 200,
+            "headers": CORS_HEADERS,
+            "body": json.dumps({"message": "Email sent successfully"})
+        }
 
     except Exception as e:
-        logger.error(f"Exception: {str(e)}")
+        logger.error(f"Failed to send email: {str(e)}")
+        print(f"Error details: {str(e)}")
         return {
             "statusCode": 500,
             "headers": CORS_HEADERS,
-            "body": json.dumps({"error": f"Server error: {str(e)}"})
+            "body": json.dumps({"error": str(e)})
         }

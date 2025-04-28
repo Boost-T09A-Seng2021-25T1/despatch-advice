@@ -2,11 +2,15 @@ import json
 from xml.dom.minidom import parseString
 import xml.etree.ElementTree as ET
 
+
+# certain parts of this file were written with ai assistance
+
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
     "Access-Control-Allow-Headers": "Content-Type"
 }
+
 
 def lambda_handler(event, context):
     try:
@@ -28,6 +32,7 @@ def lambda_handler(event, context):
             "headers": CORS_HEADERS,
             "body": json.dumps({"error": f"Server error: {str(e)}"})
         }
+
 
 def convert_order_to_despatch(order_xml: str) -> dict:
     try:
@@ -88,9 +93,6 @@ def convert_order_to_despatch(order_xml: str) -> dict:
 
         supplier_info = extract_party(supplier_party, "Supplier")
         customer_info = extract_party(customer_party, "Customer")
-
-        # Shipment ID
-        shipment_id = "SHIP-" + (order_id[-6:] if order_id else "000001")
 
         despatch_lines = ""
 
