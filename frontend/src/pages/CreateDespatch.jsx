@@ -89,21 +89,21 @@ export default function CreateDespatch() {
       const despatchId = idElement?.textContent || "UnknownID";
       const issueDate = issueDateElement?.textContent || "UnknownDate";
 
+      const payload = {
+        recipient_email: emailInput, // ✅ Corrected key name
+        despatch_info: {
+          ID: despatchId,
+          IssueDate: issueDate,
+        },
+        despatch_xml: btoa(unescape(encodeURIComponent(previewContent))), // ✅ Corrected key name
+      };
+
       const response = await fetch(
         "https://uj1acngyia.execute-api.us-east-1.amazonaws.com/v2/sendEmail",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: emailInput,
-            despatch_info: {
-              ID: despatchId,
-              IssueDate: issueDate,
-            },
-            attachment_base64: btoa(
-              unescape(encodeURIComponent(previewContent))
-            ),
-          }),
+          body: JSON.stringify(payload),
         }
       );
 
