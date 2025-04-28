@@ -12,6 +12,8 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useState, useEffect } from "react";
 import CreateDespatch from "./pages/CreateDespatch";
 
+// Certain parts of this code was generated using AI tools
+
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const queryClient = new QueryClient();

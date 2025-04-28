@@ -13,6 +13,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Logo from "@/components/ui/Logo";
 
+// Certain parts of this code was generated using AI tools
+
 const ActionCard = ({ title, to, icon }) => {
   return (
     <Link

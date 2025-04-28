@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Logo from "@/components/ui/Logo";
 
+// Certain parts of this code was generated using AI tools
+
 export default function CreateDespatch() {
   const [file, setFile] = useState(null);
   const [previewContent, setPreviewContent] = useState("");
