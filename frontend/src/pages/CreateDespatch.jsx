@@ -90,12 +90,12 @@ export default function CreateDespatch() {
       const issueDate = issueDateElement?.textContent || "UnknownDate";
 
       const payload = {
-        recipient_email: emailInput, // ✅ Corrected key name
+        email: emailInput,
         despatch_info: {
           ID: despatchId,
           IssueDate: issueDate,
         },
-        despatch_xml: btoa(unescape(encodeURIComponent(previewContent))), // ✅ Corrected key name
+        attachment_base64: btoa(unescape(encodeURIComponent(previewContent))),
       };
 
       const response = await fetch(
